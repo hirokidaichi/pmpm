@@ -1,0 +1,29 @@
+node_modules/
+dist/
+*.db
+*.db-journal
+.env
+.env.local
+~/.pmpm/
+coverage/
+.turso/
+
+# TypeScript build artifacts
+*.tsbuildinfo
+*.d.ts.map
+*.js.map
+
+# Build outputs in source dirs (tsc --build emits .js/.d.ts alongside .ts)
+packages/*/src/**/*.js
+packages/*/src/**/*.d.ts
+packages/*/test/**/*.js
+packages/*/test/**/*.d.ts
+packages/*/test/**/*.d.ts.map
+packages/*/test/**/*.js.map
+packages/*/*.d.ts
+packages/*/*.d.ts.map
+packages/*/*.js
+packages/*/*.js.map
+*.d.ts.map
+vitest.config.js
+vitest.config.d.ts
