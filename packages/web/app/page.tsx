@@ -1,15 +1,12 @@
+export const dynamic = "force-dynamic";
+
 import {
   Activity,
-  ArrowUpRight,
   CheckCircle2,
-  Command,
   Globe,
   HardDrive,
   Lock,
   Server,
-  Shield,
-  Terminal,
-  Users2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,63 +15,64 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle
+  CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { getHealth, getWorkspaces, getProjects, getTasks } from "@/lib/api";
+import { ja } from "@/lib/i18n/ja";
+import Link from "next/link";
 
-const stats = [
-  { label: "Workspaces", value: "12", hint: "+2 this week" },
-  { label: "Projects", value: "38", hint: "4 in review" },
-  { label: "Open Tasks", value: "214", hint: "18 due soon" },
-  { label: "Members", value: "64", hint: "8 guests" }
-];
+async function fetchDashboardData() {
+  const [health, workspaces, projects, tasks] = await Promise.allSettled([
+    getHealth(),
+    getWorkspaces({ limit: 1 }),
+    getProjects({ limit: 1 }),
+    getTasks({ limit: 1 }),
+  ]);
 
-const activity = [
-  {
-    title: "Device flow login verified",
-    meta: "auth", 
-    time: "2m ago"
-  },
-  {
-    title: "Webhook delivery success",
-    meta: "webhooks", 
-    time: "18m ago"
-  },
-  {
-    title: "Project BE status updated",
-    meta: "projects", 
-    time: "42m ago"
-  },
-  {
-    title: "Risk register synced",
-    meta: "risk", 
-    time: "1h ago"
-  }
-];
+  return {
+    health: health.status === "fulfilled" ? health.value : null,
+    workspaceCount:
+      workspaces.status === "fulfilled" ? workspaces.value.total : null,
+    projectCount:
+      projects.status === "fulfilled" ? projects.value.total : null,
+    taskCount: tasks.status === "fulfilled" ? tasks.value.total : null,
+  };
+}
 
-const quickActions = [
-  {
-    title: "Create workspace",
-    detail: "Bootstrap a new team space",
-    icon: Users2
-  },
-  {
-    title: "Start task sprint",
-    detail: "Open a new milestone window",
-    icon: Activity
-  },
-  {
-    title: "Run report",
-    detail: "Daily summary and velocity",
-    icon: Command
-  }
-];
+export default async function HomePage() {
+  const { health, workspaceCount, projectCount, taskCount } =
+    await fetchDashboardData();
 
-export default function HomePage() {
+  const isOnline = !!health;
+
+  const stats = [
+    {
+      label: ja.dashboard.stats.workspaces,
+      value: workspaceCount ?? "—",
+      href: "/workspaces",
+    },
+    {
+      label: ja.dashboard.stats.projects,
+      value: projectCount ?? "—",
+      href: "/workspaces",
+    },
+    {
+      label: ja.dashboard.stats.openTasks,
+      value: taskCount ?? "—",
+      href: null,
+    },
+    {
+      label: ja.dashboard.stats.members,
+      value: "—",
+      href: null,
+    },
+  ];
+
   return (
-    <main className="px-6 pb-20 pt-10">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-10">
+    <div className="px-6 pb-20 pt-6">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+        {/* Header */}
         <header className="glass-strong animate-fade-up rounded-[32px] p-6">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-4">
@@ -83,216 +81,173 @@ export default function HomePage() {
               </div>
               <div>
                 <p className="text-sm uppercase tracking-[0.2em] text-white/50">
-                  pmpm server console
+                  {ja.dashboard.subtitle}
                 </p>
-                <h1 className="font-display text-3xl text-white lg:text-4xl">
-                  Control surface for CLI-first work
+                <h1 className="font-display text-2xl text-white lg:text-3xl">
+                  {ja.dashboard.title}
                 </h1>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <Badge variant="success" className="glass-chip">
-                <CheckCircle2 className="h-3 w-3" />
-                Online
-              </Badge>
-              <Button variant="outline">API docs</Button>
-              <Button>Open CLI</Button>
-            </div>
+            <Badge
+              variant={isOnline ? "success" : "default"}
+              className="glass-chip w-fit"
+            >
+              <CheckCircle2 className="h-3 w-3" />
+              {isOnline ? ja.dashboard.online : ja.dashboard.offline}
+            </Badge>
           </div>
+
           <div className="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="space-y-4">
               <p className="text-base text-white/70">
-                A glassmorphic dashboard for monitoring projects, workloads, and
-                automation across your pmpm server. Designed for fast handoff
-                between humans, scripts, and AI agents.
+                CLI-firstのプロジェクト管理ツール。プロジェクト、ワークロード、自動化をモニタリングするグラスモーフィックダッシュボード。
               </p>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <div className="flex-1">
-                  <Input placeholder="http://localhost:3000" />
-                </div>
-                <Button className="sm:w-auto">Connect server</Button>
-              </div>
               <div className="flex flex-wrap items-center gap-3 text-xs text-white/50">
                 <span className="flex items-center gap-2">
                   <Globe className="h-4 w-4" />
-                  PMPM_SERVER_URL
+                  {process.env.NEXT_PUBLIC_PMPM_SERVER_URL ?? "localhost:3000"}
                 </span>
                 <span className="flex items-center gap-2">
                   <Lock className="h-4 w-4" />
-                  Device flow auth
+                  Better Auth
                 </span>
                 <span className="flex items-center gap-2">
                   <HardDrive className="h-4 w-4" />
-                  libsql + drizzle
+                  libsql + Drizzle
                 </span>
               </div>
             </div>
+
             <Card className="glass">
               <CardHeader>
-                <CardTitle>Server status</CardTitle>
-                <CardDescription>Live snapshot of core services</CardDescription>
+                <CardTitle>{ja.dashboard.serverStatus}</CardTitle>
+                <CardDescription>
+                  {isOnline
+                    ? `v${health?.version} — ${new Date(health?.timestamp ?? 0).toLocaleTimeString("ja-JP")}`
+                    : "サーバー未接続"}
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-white/70">API latency</span>
-                  <span className="text-sm font-semibold text-white">84 ms</span>
+                  <span className="text-sm text-white/70">
+                    {ja.dashboard.apiLatency}
+                  </span>
+                  <span className="text-sm font-semibold text-white">
+                    {isOnline ? "OK" : "—"}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-white/70">Worker queue</span>
-                  <span className="text-sm font-semibold text-white">0 pending</span>
+                  <span className="text-sm text-white/70">
+                    {ja.dashboard.webhooks}
+                  </span>
+                  <span className="text-sm font-semibold text-white">
+                    {isOnline ? "Active" : "—"}
+                  </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-white/70">Auth sessions</span>
-                  <span className="text-sm font-semibold text-white">24 active</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-white/70">Webhooks</span>
-                  <span className="text-sm font-semibold text-white">All green</span>
-                </div>
-                <Button variant="outline" className="w-full">
-                  View diagnostics
-                </Button>
               </CardContent>
             </Card>
           </div>
         </header>
 
+        {/* Stats Grid */}
         <section className="animate-fade-up" style={{ animationDelay: "0.1s" }}>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {stats.map((stat) => (
-              <Card key={stat.label} className="glass">
-                <CardHeader>
-                  <CardDescription>{stat.label}</CardDescription>
-                  <CardTitle className="text-3xl">{stat.value}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-white/60">{stat.hint}</p>
-                </CardContent>
-              </Card>
-            ))}
+            {stats.map((stat) => {
+              const inner = (
+                <Card className="glass transition hover:border-white/20">
+                  <CardHeader>
+                    <CardDescription>{stat.label}</CardDescription>
+                    <CardTitle className="text-3xl">{stat.value}</CardTitle>
+                  </CardHeader>
+                </Card>
+              );
+              return stat.href ? (
+                <Link key={stat.label} href={stat.href}>
+                  {inner}
+                </Link>
+              ) : (
+                <div key={stat.label}>{inner}</div>
+              );
+            })}
           </div>
         </section>
 
+        {/* Quick Nav */}
         <section
-          className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] animate-fade-up"
+          className="grid gap-6 lg:grid-cols-2 animate-fade-up"
           style={{ animationDelay: "0.2s" }}
         >
           <Card className="glass">
             <CardHeader>
-              <CardTitle>Recent activity</CardTitle>
-              <CardDescription>What just happened on the server</CardDescription>
+              <CardTitle>ナビゲーション</CardTitle>
+              <CardDescription>主要機能へのショートカット</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {activity.map((item, index) => (
-                <div key={item.title} className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-white">{item.title}</p>
-                      <p className="text-xs text-white/50">{item.meta}</p>
+            <CardContent className="space-y-3">
+              {[
+                {
+                  label: ja.nav.workspaces,
+                  href: "/workspaces",
+                  desc: "チーム・部門のワークスペースを管理",
+                },
+                {
+                  label: ja.nav.inbox,
+                  href: "/inbox",
+                  desc: "通知・メッセージを確認",
+                },
+                {
+                  label: ja.nav.reports,
+                  href: "/reports",
+                  desc: "プロジェクトレポートを表示",
+                },
+                {
+                  label: ja.nav.daily,
+                  href: "/daily",
+                  desc: "日報の確認・作成",
+                },
+              ].map((item) => (
+                <Link key={item.href} href={item.href}>
+                  <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 transition hover:border-white/20 hover:bg-white/10">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-500/20 text-teal-200">
+                      <Activity className="h-5 w-5" />
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-white/50">
-                      <span>{item.time}</span>
-                      <ArrowUpRight className="h-3 w-3" />
+                    <div className="flex-1">
+                      <p className="text-sm text-white">{item.label}</p>
+                      <p className="text-xs text-white/50">{item.desc}</p>
                     </div>
                   </div>
-                  {index < activity.length - 1 && <Separator />}
-                </div>
+                </Link>
               ))}
             </CardContent>
           </Card>
 
           <Card className="glass">
             <CardHeader>
-              <CardTitle>Quick actions</CardTitle>
-              <CardDescription>Common control flows</CardDescription>
+              <CardTitle>CLI コマンド</CardTitle>
+              <CardDescription>よく使うコマンド</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {quickActions.map((action) => (
+              {[
+                { label: "認証", cmd: "pmpm auth login" },
+                { label: "プロジェクト一覧", cmd: "pmpm project list --format json" },
+                { label: "タスク一覧", cmd: 'pmpm task list --status "Open"' },
+                { label: "タイマー開始", cmd: "pmpm time start --task <id>" },
+              ].map((item) => (
                 <div
-                  key={action.title}
-                  className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-4"
+                  key={item.cmd}
+                  className="rounded-2xl border border-white/10 bg-white/5 p-4"
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-500/20 text-teal-200">
-                    <action.icon className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-white">{action.title}</p>
-                    <p className="text-xs text-white/50">{action.detail}</p>
-                  </div>
-                  <Button variant="ghost" size="sm">
-                    Run
-                  </Button>
+                  <p className="text-xs uppercase tracking-[0.2em] text-white/40">
+                    {item.label}
+                  </p>
+                  <pre className="mt-2 text-sm text-white/90">
+                    <code>{item.cmd}</code>
+                  </pre>
                 </div>
               ))}
-            </CardContent>
-          </Card>
-        </section>
-
-        <section
-          className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] animate-fade-up"
-          style={{ animationDelay: "0.3s" }}
-        >
-          <Card className="glass">
-            <CardHeader>
-              <CardTitle>Security posture</CardTitle>
-              <CardDescription>Auth and policy overview</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Shield className="h-4 w-4 text-teal-300" />
-                  <span className="text-sm text-white/70">Admin roles</span>
-                </div>
-                <span className="text-sm text-white">4 active</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Terminal className="h-4 w-4 text-teal-300" />
-                  <span className="text-sm text-white/70">API keys</span>
-                </div>
-                <span className="text-sm text-white">11 valid</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Lock className="h-4 w-4 text-teal-300" />
-                  <span className="text-sm text-white/70">Device flow</span>
-                </div>
-                <span className="text-sm text-white">Enabled</span>
-              </div>
-              <Button variant="outline" className="w-full">
-                Review policies
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="glass">
-            <CardHeader>
-              <CardTitle>CLI launchpad</CardTitle>
-              <CardDescription>Copy ready commands</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-white/40">Auth</p>
-                <pre className="mt-3 text-sm text-white/90">
-                  <code>pmpm auth login</code>
-                </pre>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-white/40">Projects</p>
-                <pre className="mt-3 text-sm text-white/90">
-                  <code>pmpm project list --format json</code>
-                </pre>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-white/40">Tasks</p>
-                <pre className="mt-3 text-sm text-white/90">
-                  <code>pmpm task list --status "Open" --assignee me</code>
-                </pre>
-              </div>
             </CardContent>
           </Card>
         </section>
       </div>
-    </main>
+    </div>
   );
 }

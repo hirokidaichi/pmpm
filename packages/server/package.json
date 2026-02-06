@@ -17,7 +17,7 @@
     "@libsql/client": "^0.14.0",
     "@pmpm/shared": "*",
     "better-auth": "^1.2.0",
-    "drizzle-orm": "^0.38.0",
+    "drizzle-orm": "^0.45.1",
     "hono": "^4.7.0",
     "ulid": "^2.3.0",
     "zod": "^3.24.0"

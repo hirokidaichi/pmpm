@@ -7,6 +7,7 @@ dist/
 ~/.pmpm/
 coverage/
 .turso/
+.next/
 
 # TypeScript build artifacts
 *.tsbuildinfo
