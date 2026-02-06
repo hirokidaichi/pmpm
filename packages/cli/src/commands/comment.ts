@@ -27,7 +27,7 @@ Examples:
       try {
         const result = await post(
           `/api/tasks/${taskId}/comments`,
-          { body: localOpts.message },
+          { bodyMd: localOpts.message },
           clientOpts
         );
         printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
@@ -69,20 +69,21 @@ Examples:
     .command("edit")
     .description("Edit a comment")
     .argument("<comment-id>", "Comment ID")
+    .requiredOption("--task <task-id>", "Task ID the comment belongs to")
     .requiredOption("-m, --message <text>", "Updated comment text")
     .addHelpText(
       "after",
       `
 Examples:
-  pmpm comment edit 01HXK... -m "Updated comment text"`
+  pmpm comment edit 01HXK... --task 01HXK... -m "Updated comment text"`
     )
     .action(async (commentId, localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
       try {
         const result = await put(
-          `/api/comments/${commentId}`,
-          { body: localOpts.message },
+          `/api/tasks/${localOpts.task}/comments/${commentId}`,
+          { bodyMd: localOpts.message },
           clientOpts
         );
         printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
@@ -98,17 +99,18 @@ Examples:
     .command("delete")
     .description("Delete a comment")
     .argument("<comment-id>", "Comment ID")
+    .requiredOption("--task <task-id>", "Task ID the comment belongs to")
     .addHelpText(
       "after",
       `
 Examples:
-  pmpm comment delete 01HXK...`
+  pmpm comment delete 01HXK... --task 01HXK...`
     )
-    .action(async (commentId, _opts, cmd) => {
+    .action(async (commentId, localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
       try {
-        await del(`/api/comments/${commentId}`, clientOpts);
+        await del(`/api/tasks/${localOpts.task}/comments/${commentId}`, clientOpts);
         printSuccess(`Comment ${commentId} deleted.`);
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };

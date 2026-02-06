@@ -1,13 +1,17 @@
 import { Command } from "commander";
-import { get, post, put, del, extractClientOpts } from "../client/index.js";
+import { get, post, put, del, apiRequest, extractClientOpts, type ClientOptions } from "../client/index.js";
 import { loadConfig } from "../config/index.js";
+import { resolveWorkspaceAndProject } from "../client/resolver.js";
 import { printOutput, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
 
-function resolveProjectPath(opts: Record<string, unknown>): {
-  workspace: string;
-  project: string;
-} {
+async function resolveProjectPath(
+  opts: Record<string, unknown>,
+  clientOpts: ClientOptions,
+): Promise<{
+  workspaceId: string;
+  projectId: string;
+}> {
   const config = loadConfig();
   const workspace = (opts.workspace as string) ?? config.defaults.workspace;
   const project = (opts.project as string) ?? config.defaults.project;
@@ -19,7 +23,7 @@ function resolveProjectPath(opts: Record<string, unknown>): {
     printError("No project specified. Use --project or 'pmpm project use <key>'.");
     process.exit(EXIT_CODES.VALIDATION_ERROR);
   }
-  return { workspace, project };
+  return resolveWorkspaceAndProject(workspace, project, clientOpts);
 }
 
 export function registerFieldCommand(program: Command): void {
@@ -46,11 +50,11 @@ Examples:
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const { workspace, project } = resolveProjectPath({ ...localOpts, ...opts });
+      const { projectId } = await resolveProjectPath({ ...localOpts, ...opts }, clientOpts);
       try {
         const result = await get(
-          `/api/workspaces/${workspace}/projects/${project}/fields`,
-          clientOpts
+          `/api/fields`,
+          { ...clientOpts, query: { projectId } }
         );
         printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
       } catch (err: unknown) {
@@ -82,17 +86,18 @@ Examples:
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const { workspace, project } = resolveProjectPath({ ...localOpts, ...opts });
+      const { projectId } = await resolveProjectPath({ ...localOpts, ...opts }, clientOpts);
       const body: Record<string, unknown> = {
         name: localOpts.name,
         type: localOpts.type,
+        projectId,
       };
       if (localOpts.options) body.options = localOpts.options.split(",").map((o: string) => o.trim());
       if (localOpts.description) body.description = localOpts.description;
       if (localOpts.required) body.required = true;
       try {
         const result = await post(
-          `/api/workspaces/${workspace}/projects/${project}/fields`,
+          `/api/fields`,
           body,
           clientOpts
         );
@@ -155,8 +160,8 @@ Examples:
       const clientOpts = extractClientOpts(opts);
       try {
         const result = await post(
-          `/api/tasks/${taskId}/fields`,
-          { field: localOpts.field, value: localOpts.value },
+          `/api/fields/values`,
+          { fieldId: localOpts.field, taskId, value: localOpts.value },
           clientOpts
         );
         printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
@@ -183,9 +188,10 @@ Examples:
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
       try {
-        await del(
-          `/api/tasks/${taskId}/fields/${encodeURIComponent(localOpts.field)}`,
-          clientOpts
+        await apiRequest(
+          "DELETE",
+          `/api/fields/values`,
+          { ...clientOpts, body: { fieldId: localOpts.field, taskId } }
         );
         printSuccess(`Field '${localOpts.field}' removed from task ${taskId}.`);
       } catch (err: unknown) {

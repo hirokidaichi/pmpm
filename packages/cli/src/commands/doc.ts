@@ -1,13 +1,17 @@
 import { Command } from "commander";
-import { get, post, put, del, extractClientOpts } from "../client/index.js";
+import { get, post, put, del, extractClientOpts, type ClientOptions } from "../client/index.js";
 import { loadConfig } from "../config/index.js";
+import { resolveWorkspaceAndProject } from "../client/resolver.js";
 import { printOutput, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
 
-function resolveProjectPath(opts: Record<string, unknown>): {
-  workspace: string;
-  project: string;
-} {
+async function resolveProjectPath(
+  opts: Record<string, unknown>,
+  clientOpts: ClientOptions,
+): Promise<{
+  workspaceId: string;
+  projectId: string;
+}> {
   const config = loadConfig();
   const workspace = (opts.workspace as string) ?? config.defaults.workspace;
   const project = (opts.project as string) ?? config.defaults.project;
@@ -19,7 +23,7 @@ function resolveProjectPath(opts: Record<string, unknown>): {
     printError("No project specified. Use --project or 'pmpm project use <key>'.");
     process.exit(EXIT_CODES.VALIDATION_ERROR);
   }
-  return { workspace, project };
+  return resolveWorkspaceAndProject(workspace, project, clientOpts);
 }
 
 export function registerDocCommand(program: Command): void {
@@ -44,10 +48,10 @@ Examples:
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const { workspace, project } = resolveProjectPath({ ...localOpts, ...opts });
+      const { projectId } = await resolveProjectPath({ ...localOpts, ...opts }, clientOpts);
       try {
         const result = await get(
-          `/api/workspaces/${workspace}/projects/${project}/documents`,
+          `/api/projects/${projectId}/documents`,
           clientOpts
         );
         printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
@@ -63,6 +67,8 @@ Examples:
     .command("show")
     .description("Show document content")
     .argument("<doc-id>", "Document ID")
+    .option("--project <key>", "Project key")
+    .option("--workspace <slug>", "Workspace slug")
     .addHelpText(
       "after",
       `
@@ -70,11 +76,12 @@ Examples:
   pmpm doc show 01HXK...
   pmpm doc show 01HXK... --format json`
     )
-    .action(async (docId, _opts, cmd) => {
+    .action(async (docId, localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
+      const { projectId } = await resolveProjectPath({ ...localOpts, ...opts }, clientOpts);
       try {
-        const result = await get(`/api/documents/${docId}`, clientOpts);
+        const result = await get(`/api/projects/${projectId}/documents/${docId}`, clientOpts);
         printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
@@ -91,34 +98,28 @@ Examples:
     .option("--project <key>", "Project key")
     .option("--workspace <slug>", "Workspace slug")
     .option("--body <markdown>", "Markdown content")
-    .option("--file <path>", "File to attach (image, SVG, etc.)")
+    .option("--content-type <type>", "Content type (MARKDOWN, IMAGE, SVG, OTHER)", "MARKDOWN")
     .option("--parent <doc-id>", "Parent document ID (for hierarchy)")
     .addHelpText(
       "after",
       `
 Examples:
   pmpm doc create --project BE --title "API Spec" --body "# API\\n..."
-  pmpm doc create --project BE --title "Architecture" --file ./arch.svg`
+  pmpm doc create --project BE --title "Architecture" --content-type SVG`
     )
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const { workspace, project } = resolveProjectPath({ ...localOpts, ...opts });
+      const { projectId } = await resolveProjectPath({ ...localOpts, ...opts }, clientOpts);
       const body: Record<string, unknown> = {
         title: localOpts.title,
+        contentType: localOpts.contentType ?? "MARKDOWN",
       };
-      if (localOpts.body) body.body = localOpts.body;
-      if (localOpts.parent) body.parentId = localOpts.parent;
-      if (localOpts.file) {
-        const fs = await import("node:fs");
-        const path = await import("node:path");
-        const content = fs.readFileSync(localOpts.file);
-        body.fileName = path.basename(localOpts.file);
-        body.fileContent = content.toString("base64");
-      }
+      if (localOpts.body) body.bodyMd = localOpts.body;
+      if (localOpts.parent) body.parentDocumentId = localOpts.parent;
       try {
         const result = await post(
-          `/api/workspaces/${workspace}/projects/${project}/documents`,
+          `/api/projects/${projectId}/documents`,
           body,
           clientOpts
         );
@@ -144,29 +145,10 @@ Examples:
 Examples:
   pmpm doc upload ./screenshot.png --project BE --title "Screen Capture"`
     )
-    .action(async (file, localOpts, cmd) => {
-      const opts = cmd.optsWithGlobals();
-      const clientOpts = extractClientOpts(opts);
-      const { workspace, project } = resolveProjectPath({ ...localOpts, ...opts });
-      try {
-        const fs = await import("node:fs");
-        const pathMod = await import("node:path");
-        const content = fs.readFileSync(file);
-        const result = await post(
-          `/api/workspaces/${workspace}/projects/${project}/documents`,
-          {
-            title: localOpts.title,
-            fileName: pathMod.basename(file),
-            fileContent: content.toString("base64"),
-          },
-          clientOpts
-        );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
-      } catch (err: unknown) {
-        const apiErr = err as { message?: string; exitCode?: number };
-        printError(apiErr.message ?? "Failed to upload document");
-        process.exit(apiErr.exitCode ?? EXIT_CODES.GENERAL_ERROR);
-      }
+    .action(async (_file, _localOpts, cmd) => {
+      extractClientOpts(cmd.optsWithGlobals());
+      printError("File upload is not yet implemented on the server.");
+      process.exit(EXIT_CODES.GENERAL_ERROR);
     });
 
   // ── edit ──
@@ -174,31 +156,26 @@ Examples:
     .command("edit")
     .description("Edit a document")
     .argument("<doc-id>", "Document ID")
+    .option("--project <key>", "Project key")
+    .option("--workspace <slug>", "Workspace slug")
     .option("--title <title>", "New title")
     .option("--body <markdown>", "Updated Markdown content")
-    .option("--file <path>", "Replace file attachment")
     .addHelpText(
       "after",
       `
 Examples:
   pmpm doc edit 01HXK... --body "# Updated\\n..."
-  pmpm doc edit 01HXK... --file ./updated.svg`
+  pmpm doc edit 01HXK... --title "New Title"`
     )
     .action(async (docId, localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
+      const { projectId } = await resolveProjectPath({ ...localOpts, ...opts }, clientOpts);
       const body: Record<string, unknown> = {};
       if (localOpts.title) body.title = localOpts.title;
-      if (localOpts.body) body.body = localOpts.body;
-      if (localOpts.file) {
-        const fs = await import("node:fs");
-        const pathMod = await import("node:path");
-        const content = fs.readFileSync(localOpts.file);
-        body.fileName = pathMod.basename(localOpts.file);
-        body.fileContent = content.toString("base64");
-      }
+      if (localOpts.body) body.bodyMd = localOpts.body;
       try {
-        const result = await put(`/api/documents/${docId}`, body, clientOpts);
+        const result = await put(`/api/projects/${projectId}/documents/${docId}`, body, clientOpts);
         printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
@@ -212,17 +189,20 @@ Examples:
     .command("delete")
     .description("Delete a document")
     .argument("<doc-id>", "Document ID")
+    .option("--project <key>", "Project key")
+    .option("--workspace <slug>", "Workspace slug")
     .addHelpText(
       "after",
       `
 Examples:
   pmpm doc delete 01HXK...`
     )
-    .action(async (docId, _opts, cmd) => {
+    .action(async (docId, localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
+      const { projectId } = await resolveProjectPath({ ...localOpts, ...opts }, clientOpts);
       try {
-        await del(`/api/documents/${docId}`, clientOpts);
+        await del(`/api/projects/${projectId}/documents/${docId}`, clientOpts);
         printSuccess(`Document ${docId} deleted.`);
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
@@ -244,24 +224,10 @@ Examples:
   pmpm doc download 01HXK...
   pmpm doc download 01HXK... -o ./output/`
     )
-    .action(async (docId, localOpts, cmd) => {
-      const opts = cmd.optsWithGlobals();
-      const clientOpts = extractClientOpts(opts);
-      try {
-        const result = await get<{ fileName: string; content: string }>(
-          `/api/documents/${docId}/download`,
-          clientOpts
-        );
-        const fs = await import("node:fs");
-        const pathMod = await import("node:path");
-        const outPath = pathMod.join(localOpts.output, result.fileName);
-        fs.writeFileSync(outPath, Buffer.from(result.content, "base64"));
-        printSuccess(`Downloaded to ${outPath}`);
-      } catch (err: unknown) {
-        const apiErr = err as { message?: string; exitCode?: number };
-        printError(apiErr.message ?? "Failed to download document");
-        process.exit(apiErr.exitCode ?? EXIT_CODES.GENERAL_ERROR);
-      }
+    .action(async (_docId, _localOpts, cmd) => {
+      extractClientOpts(cmd.optsWithGlobals());
+      printError("Document download is not yet implemented on the server.");
+      process.exit(EXIT_CODES.GENERAL_ERROR);
     });
 
   // ── tree ──
@@ -279,10 +245,10 @@ Examples:
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const { workspace, project } = resolveProjectPath({ ...localOpts, ...opts });
+      const { projectId } = await resolveProjectPath({ ...localOpts, ...opts }, clientOpts);
       try {
         const result = await get(
-          `/api/workspaces/${workspace}/projects/${project}/documents/tree`,
+          `/api/projects/${projectId}/documents/tree`,
           clientOpts
         );
         if (opts.format === "json" || opts.format === "yaml") {

@@ -1,8 +1,21 @@
 import { Command } from "commander";
-import { get, post, put, del, extractClientOpts } from "../client/index.js";
+import { get, post, put, del, extractClientOpts, type ClientOptions } from "../client/index.js";
 import { loadConfig } from "../config/index.js";
 import { printOutput, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
+import { resolveWorkspaceId, resolveProjectId } from "../helpers/resolve.js";
+
+function resolveWorkspace(opts: Record<string, unknown>): string {
+  const ws =
+    (opts.workspace as string) ?? loadConfig().defaults.workspace;
+  if (!ws) {
+    printError(
+      "No workspace specified. Use --workspace or 'pmpm workspace use <slug>'."
+    );
+    process.exit(EXIT_CODES.VALIDATION_ERROR);
+  }
+  return ws;
+}
 
 function resolveProject(opts: Record<string, unknown>): string {
   const proj =
@@ -16,6 +29,16 @@ function resolveProject(opts: Record<string, unknown>): string {
   return proj;
 }
 
+async function resolveProjectIdFromOpts(
+  opts: Record<string, unknown>,
+  clientOpts: ClientOptions,
+): Promise<string> {
+  const workspaceSlug = resolveWorkspace(opts);
+  const projectKey = resolveProject(opts);
+  const workspaceId = await resolveWorkspaceId(workspaceSlug, clientOpts);
+  return resolveProjectId(projectKey, workspaceId, clientOpts);
+}
+
 export function registerMilestoneCommand(program: Command): void {
   const ms = program
     .command("milestone")
@@ -27,6 +50,7 @@ export function registerMilestoneCommand(program: Command): void {
     .command("list")
     .alias("ls")
     .description("List milestones for a project")
+    .option("--workspace <slug>", "Workspace slug")
     .option("--project <key>", "Project key")
     .option("--status <status>", "Filter by status (OPEN|COMPLETED|MISSED)")
     .addHelpText(
@@ -40,8 +64,8 @@ Examples:
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const project = resolveProject({ ...localOpts, ...opts });
-      const query: Record<string, string> = { projectId: project };
+      const projectId = await resolveProjectIdFromOpts({ ...localOpts, ...opts }, clientOpts);
+      const query: Record<string, string> = { projectId };
       if (localOpts.status) query.status = localOpts.status;
       try {
         const result = await get("/api/milestones", {
@@ -61,6 +85,7 @@ Examples:
     .command("create")
     .description("Create a new milestone")
     .requiredOption("--name <name>", "Milestone name")
+    .option("--workspace <slug>", "Workspace slug")
     .option("--project <key>", "Project key")
     .option("--description <text>", "Description")
     .option("--due <date>", "Due date (YYYY-MM-DD or unix ms)")
@@ -74,12 +99,12 @@ Examples:
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const project = resolveProject({ ...localOpts, ...opts });
+      const projectId = await resolveProjectIdFromOpts({ ...localOpts, ...opts }, clientOpts);
       try {
         const result = await post(
           "/api/milestones",
           {
-            projectId: project,
+            projectId,
             name: localOpts.name,
             description: localOpts.description,
             dueAt: localOpts.due ? new Date(localOpts.due).getTime() : undefined,

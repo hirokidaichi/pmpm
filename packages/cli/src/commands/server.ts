@@ -8,6 +8,52 @@ export function registerServerCommand(program: Command): void {
     .command("server")
     .description("Server administration (requires Admin role)");
 
+  // ── setup ──
+  server
+    .command("setup")
+    .description("Initial server setup — create the first admin user")
+    .requiredOption("--email <email>", "Admin email address")
+    .requiredOption("--password <password>", "Admin password (min 8 characters)")
+    .option("--name <name>", "Admin display name (defaults to email)")
+    .addHelpText(
+      "after",
+      `
+Examples:
+  pmpm server setup --email admin@example.com --password mysecret123
+  pmpm server setup --email admin@example.com --password mysecret123 --name "Admin User"`,
+    )
+    .action(async (localOpts, cmd) => {
+      const opts = cmd.optsWithGlobals();
+      try {
+        const status = await get<{ needsSetup: boolean }>(
+          `/api/setup`,
+          { server: opts.server },
+        );
+        if (!status.needsSetup) {
+          printError("Server already has users. Setup can only run on a fresh server.");
+          process.exit(EXIT_CODES.VALIDATION_ERROR);
+        }
+
+        const result = await post<{ user: { id: string; email: string }; message: string }>(
+          `/api/setup`,
+          {
+            email: localOpts.email,
+            password: localOpts.password,
+            name: localOpts.name ?? localOpts.email,
+          },
+          { server: opts.server },
+        );
+
+        printSuccess(result.message ?? "Server setup complete!");
+        console.log(`  Admin user: ${result.user.email}`);
+        console.log(`  Run 'pmpm auth login' to authenticate.`);
+      } catch (err: unknown) {
+        const apiErr = err as { message?: string; exitCode?: number };
+        printError(apiErr.message ?? "Setup failed");
+        process.exit(apiErr.exitCode ?? EXIT_CODES.GENERAL_ERROR);
+      }
+    });
+
   // ── status ──
   server
     .command("status")

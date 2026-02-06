@@ -1,8 +1,56 @@
 import { Command } from "commander";
-import { get, post, put, del, extractClientOpts } from "../client/index.js";
+import { get, post, patch, del, extractClientOpts, type ClientOptions } from "../client/index.js";
 import { loadConfig } from "../config/index.js";
 import { printOutput, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
+import { resolveWorkspaceId, resolveProjectId } from "../helpers/resolve.js";
+
+interface DailyReport {
+  id: string;
+  reportDate: string;
+  [key: string]: unknown;
+}
+
+interface PaginatedReports {
+  items: DailyReport[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+async function findReportByDate(
+  date: string | undefined,
+  clientOpts: ClientOptions,
+): Promise<DailyReport> {
+  const query: Record<string, string> = {};
+  if (date) {
+    query.dateFrom = date;
+    query.dateTo = date;
+  }
+  query.limit = "1";
+  const result = await get<PaginatedReports>("/api/daily-reports", {
+    ...clientOpts,
+    query,
+  });
+  if (!result.items.length) {
+    printError("Daily report not found for that date.");
+    process.exit(EXIT_CODES.NOT_FOUND);
+  }
+  return result.items[0];
+}
+
+async function resolveProjectIdFromOpts(
+  localOpts: Record<string, unknown>,
+  opts: Record<string, unknown>,
+  clientOpts: ClientOptions,
+): Promise<string | undefined> {
+  const config = loadConfig();
+  const workspaceSlug = (localOpts.workspace as string) ?? (opts.workspace as string) ?? config.defaults.workspace;
+  const projectKey = (localOpts.project as string) ?? (opts.project as string) ?? config.defaults.project;
+  if (!workspaceSlug || !projectKey) return undefined;
+  const workspaceId = await resolveWorkspaceId(workspaceSlug, clientOpts);
+  return resolveProjectId(projectKey, workspaceId, clientOpts);
+}
 
 export function registerDailyCommand(program: Command): void {
   const daily = program
@@ -30,14 +78,14 @@ Examples:
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const config = loadConfig();
-      const project = localOpts.project ?? opts.project ?? config.defaults.project;
       try {
+        const projectId = await resolveProjectIdFromOpts(localOpts, opts, clientOpts);
+        const reportDate = localOpts.date ?? new Date().toISOString().slice(0, 10);
         const result = await post(
           "/api/daily-reports",
           {
-            projectId: project,
-            date: localOpts.date,
+            projectId,
+            reportDate,
             achievements: localOpts.achievements,
             plans: localOpts.plans,
             issues: localOpts.issues,
@@ -71,16 +119,13 @@ Examples:
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const config = loadConfig();
-      const project = localOpts.project ?? opts.project ?? config.defaults.project;
-      const body: Record<string, unknown> = {};
-      if (project) body.projectId = project;
-      if (localOpts.date) body.date = localOpts.date;
-      if (localOpts.achievements) body.achievements = localOpts.achievements;
-      if (localOpts.plans) body.plans = localOpts.plans;
-      if (localOpts.issues) body.issues = localOpts.issues;
       try {
-        const result = await put("/api/daily-reports", body, clientOpts);
+        const report = await findReportByDate(localOpts.date, clientOpts);
+        const body: Record<string, unknown> = {};
+        if (localOpts.achievements) body.achievements = localOpts.achievements;
+        if (localOpts.plans) body.plans = localOpts.plans;
+        if (localOpts.issues) body.issues = localOpts.issues;
+        const result = await patch(`/api/daily-reports/${report.id}`, body, clientOpts);
         printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
@@ -110,12 +155,11 @@ Examples:
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const config = loadConfig();
-      const project = localOpts.project ?? opts.project ?? config.defaults.project;
-      const query: Record<string, string> = {};
-      if (localOpts.date) query.date = localOpts.date;
-      if (project) query.projectId = project;
       try {
+        const projectId = await resolveProjectIdFromOpts(localOpts, opts, clientOpts);
+        const query: Record<string, string> = {};
+        query.reportDate = localOpts.date ?? new Date().toISOString().slice(0, 10);
+        if (projectId) query.projectId = projectId;
         const result = await get("/api/daily-reports/preview", {
           ...clientOpts,
           query,
@@ -140,20 +184,14 @@ Examples:
 Examples:
   pmpm daily show                       # Today's report
   pmpm daily show --date 2026-02-05     # Specific date
-  pmpm daily show --user @hiroki        # Another user's report
   pmpm daily show --format json`
     )
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const query: Record<string, string> = {};
-      if (localOpts.date) query.date = localOpts.date;
-      if (localOpts.user) query.user = localOpts.user;
       try {
-        const result = await get("/api/daily-reports/show", {
-          ...clientOpts,
-          query,
-        });
+        const report = await findReportByDate(localOpts.date, clientOpts);
+        const result = await get(`/api/daily-reports/${report.id}`, clientOpts);
         printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
@@ -170,7 +208,7 @@ Examples:
     .option("--from <date>", "Start date (YYYY-MM-DD)")
     .option("--to <date>", "End date (YYYY-MM-DD)")
     .option("--project <key>", "Filter by project key")
-    .option("--user <alias>", "Filter by user (default: self)")
+    .option("--user <id>", "Filter by user ID")
     .option("--limit <n>", "Max results", "20")
     .addHelpText(
       "after",
@@ -178,17 +216,17 @@ Examples:
 Examples:
   pmpm daily list                                    # Recent reports
   pmpm daily list --from 2026-02-01 --to 2026-02-28  # Date range
-  pmpm daily list --user @hiroki --project BE        # Specific user/project
+  pmpm daily list --user USER_ID --project BE        # Specific user/project
   pmpm daily list --format json`
     )
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
       const query: Record<string, string> = {};
-      if (localOpts.from) query.from = localOpts.from;
-      if (localOpts.to) query.to = localOpts.to;
+      if (localOpts.from) query.dateFrom = localOpts.from;
+      if (localOpts.to) query.dateTo = localOpts.to;
       if (localOpts.project) query.projectId = localOpts.project;
-      if (localOpts.user) query.user = localOpts.user;
+      if (localOpts.user) query.userId = localOpts.user;
       query.limit = localOpts.limit;
       try {
         const result = await get("/api/daily-reports", {
@@ -219,13 +257,9 @@ Examples:
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const params = new URLSearchParams();
-      if (localOpts.date) params.set("date", localOpts.date);
-      if (localOpts.project) params.set("projectId", localOpts.project);
-      const qs = params.toString();
-      const url = qs ? `/api/daily-reports?${qs}` : "/api/daily-reports";
       try {
-        await del(url, clientOpts);
+        const report = await findReportByDate(localOpts.date, clientOpts);
+        await del(`/api/daily-reports/${report.id}`, clientOpts);
         printSuccess("Daily report deleted.");
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };

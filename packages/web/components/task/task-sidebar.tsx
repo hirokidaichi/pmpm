@@ -47,7 +47,7 @@ export function TaskSidebar({ task }: TaskSidebarProps) {
 
         <SidebarRow icon={Gauge} label={ja.task.importance}>
           <span
-            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${importanceBadgeColor(importance)}`}
+            className={`inline-flex items-center rounded-none px-2 py-0.5 text-xs font-semibold ${importanceBadgeColor(importance)}`}
           >
             {ja.importance[importance as keyof typeof ja.importance] ?? importance}
           </span>

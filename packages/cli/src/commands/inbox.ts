@@ -98,7 +98,7 @@ Examples:
           await post(`/api/inbox/read-all`, {}, clientOpts);
           printSuccess("All notifications marked as read.");
         } else if (messageId) {
-          await post(`/api/inbox/${messageId}/read`, {}, clientOpts);
+          await post(`/api/inbox/read/${messageId}`, {}, clientOpts);
           printSuccess(`Notification ${messageId} marked as read.`);
         } else {
           printError("Specify a message ID or use --all.");

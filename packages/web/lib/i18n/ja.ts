@@ -154,6 +154,17 @@ export type Translations = {
     HIGH: string;
     CRITICAL: string;
   };
+  auth: {
+    signIn: string;
+    signOut: string;
+    signInDescription: string;
+    email: string;
+    password: string;
+    signInWithEmail: string;
+    signInWithGitHub: string;
+    signingIn: string;
+    loginFailed: string;
+  };
 };
 
 export const ja: Translations = {
@@ -311,5 +322,16 @@ export const ja: Translations = {
     MEDIUM: "中",
     HIGH: "高",
     CRITICAL: "致命的",
+  },
+  auth: {
+    signIn: "サインイン",
+    signOut: "サインアウト",
+    signInDescription: "pmpm サーバーにサインイン",
+    email: "メールアドレス",
+    password: "パスワード",
+    signInWithEmail: "メールでサインイン",
+    signInWithGitHub: "GitHub でサインイン",
+    signingIn: "サインイン中...",
+    loginFailed: "サインインに失敗しました",
   },
 };

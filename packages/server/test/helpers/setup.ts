@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS pm_project (
   name TEXT NOT NULL,
   key TEXT NOT NULL,
   description TEXT,
+  description_md TEXT,
   owner_user_id TEXT,
   status TEXT NOT NULL CHECK (status IN ('ACTIVE', 'ON_HOLD', 'COMPLETED', 'CANCELLED')) DEFAULT 'ACTIVE',
   start_at INTEGER,

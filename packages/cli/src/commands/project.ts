@@ -1,19 +1,18 @@
 import { Command } from "commander";
-import { get, post, put, del, extractClientOpts } from "../client/index.js";
+import { get, post, put, del, extractClientOpts, type ClientOptions } from "../client/index.js";
+import { resolveWorkspaceId, resolveWorkspaceAndProject } from "../client/resolver.js";
 import { updateConfig, loadConfig } from "../config/index.js";
 import { printOutput, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
+import { dateToEpoch } from "../helpers/resolve.js";
 
-function resolveWorkspace(opts: Record<string, unknown>): string {
-  const ws =
-    (opts.workspace as string) ?? loadConfig().defaults.workspace;
+async function resolveWorkspaceSlugAndId(opts: Record<string, unknown>, clientOpts: ClientOptions): Promise<string> {
+  const ws = (opts.workspace as string) ?? loadConfig().defaults.workspace;
   if (!ws) {
-    printError(
-      "No workspace specified. Use --workspace or 'pmpm workspace use <slug>'."
-    );
+    printError("No workspace specified. Use --workspace or 'pmpm workspace use <slug>'.");
     process.exit(EXIT_CODES.VALIDATION_ERROR);
   }
-  return ws;
+  return resolveWorkspaceId(ws, clientOpts);
 }
 
 export function registerProjectCommand(program: Command): void {
@@ -40,11 +39,11 @@ Examples:
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const workspace = resolveWorkspace({ ...localOpts, ...opts });
-      const query: Record<string, string> = {};
-      if (localOpts.status) query.status = localOpts.status;
+      const wsId = await resolveWorkspaceSlugAndId({ ...localOpts, ...opts }, clientOpts);
       try {
-        const projects = await get(`/api/workspaces/${workspace}/projects`, {
+        const query: Record<string, string> = { workspaceId: wsId };
+        if (localOpts.status) query.status = localOpts.status;
+        const projects = await get("/api/projects", {
           ...clientOpts,
           query,
         });
@@ -76,19 +75,17 @@ Examples:
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const workspace = resolveWorkspace({ ...localOpts, ...opts });
+      const wsId = await resolveWorkspaceSlugAndId({ ...localOpts, ...opts }, clientOpts);
       try {
-        const result = await post(
-          `/api/workspaces/${workspace}/projects`,
-          {
-            key: localOpts.key,
-            name: localOpts.name,
-            description: localOpts.description,
-            startDate: localOpts.start,
-            dueDate: localOpts.due,
-          },
-          clientOpts
-        );
+        const body: Record<string, unknown> = {
+          workspaceId: wsId,
+          key: localOpts.key,
+          name: localOpts.name,
+        };
+        if (localOpts.description) body.description = localOpts.description;
+        if (localOpts.start) body.startAt = dateToEpoch(localOpts.start);
+        if (localOpts.due) body.dueAt = dateToEpoch(localOpts.due);
+        const result = await post("/api/projects", body, clientOpts);
         printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
@@ -113,12 +110,14 @@ Examples:
     .action(async (key, localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const workspace = resolveWorkspace({ ...localOpts, ...opts });
+      const workspace = (localOpts.workspace as string ?? opts.workspace as string) ?? loadConfig().defaults.workspace;
+      if (!workspace) {
+        printError("No workspace specified. Use --workspace or 'pmpm workspace use <slug>'.");
+        process.exit(EXIT_CODES.VALIDATION_ERROR);
+      }
       try {
-        const project = await get(
-          `/api/workspaces/${workspace}/projects/${key}`,
-          clientOpts
-        );
+        const { projectId } = await resolveWorkspaceAndProject(workspace, key, clientOpts);
+        const project = await get(`/api/projects/${projectId}`, clientOpts);
         printOutput(project, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
@@ -148,19 +147,20 @@ Examples:
     .action(async (key, localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const workspace = resolveWorkspace({ ...localOpts, ...opts });
-      const body: Record<string, unknown> = {};
-      if (localOpts.name) body.name = localOpts.name;
-      if (localOpts.description) body.description = localOpts.description;
-      if (localOpts.status) body.status = localOpts.status;
-      if (localOpts.start) body.startDate = localOpts.start;
-      if (localOpts.due) body.dueDate = localOpts.due;
+      const workspace = (localOpts.workspace as string ?? opts.workspace as string) ?? loadConfig().defaults.workspace;
+      if (!workspace) {
+        printError("No workspace specified. Use --workspace or 'pmpm workspace use <slug>'.");
+        process.exit(EXIT_CODES.VALIDATION_ERROR);
+      }
       try {
-        const result = await put(
-          `/api/workspaces/${workspace}/projects/${key}`,
-          body,
-          clientOpts
-        );
+        const { projectId } = await resolveWorkspaceAndProject(workspace, key, clientOpts);
+        const body: Record<string, unknown> = {};
+        if (localOpts.name) body.name = localOpts.name;
+        if (localOpts.description) body.description = localOpts.description;
+        if (localOpts.status) body.status = localOpts.status;
+        if (localOpts.start) body.startAt = dateToEpoch(localOpts.start);
+        if (localOpts.due) body.dueAt = dateToEpoch(localOpts.due);
+        const result = await put(`/api/projects/${projectId}`, body, clientOpts);
         printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
@@ -184,13 +184,14 @@ Examples:
     .action(async (key, localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const workspace = resolveWorkspace({ ...localOpts, ...opts });
+      const workspace = (localOpts.workspace as string ?? opts.workspace as string) ?? loadConfig().defaults.workspace;
+      if (!workspace) {
+        printError("No workspace specified. Use --workspace or 'pmpm workspace use <slug>'.");
+        process.exit(EXIT_CODES.VALIDATION_ERROR);
+      }
       try {
-        await post(
-          `/api/workspaces/${workspace}/projects/${key}/archive`,
-          {},
-          clientOpts
-        );
+        const { projectId } = await resolveWorkspaceAndProject(workspace, key, clientOpts);
+        await del(`/api/projects/${projectId}`, clientOpts);
         printSuccess(`Project '${key}' archived.`);
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
@@ -235,17 +236,19 @@ Examples:
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const workspace = resolveWorkspace({ ...localOpts, ...opts });
-      const project = localOpts.project ?? loadConfig().defaults.project;
-      if (!project) {
+      const workspace = (localOpts.workspace as string ?? opts.workspace as string) ?? loadConfig().defaults.workspace;
+      if (!workspace) {
+        printError("No workspace specified. Use --workspace or 'pmpm workspace use <slug>'.");
+        process.exit(EXIT_CODES.VALIDATION_ERROR);
+      }
+      const projectKey = localOpts.project ?? loadConfig().defaults.project;
+      if (!projectKey) {
         printError("No project specified. Use --project or 'pmpm project use <key>'.");
         process.exit(EXIT_CODES.VALIDATION_ERROR);
       }
       try {
-        const result = await get(
-          `/api/workspaces/${workspace}/projects/${project}/description`,
-          clientOpts
-        );
+        const { projectId } = await resolveWorkspaceAndProject(workspace, projectKey, clientOpts);
+        const result = await get(`/api/projects/${projectId}/description`, clientOpts);
         const desc = result as { descriptionMd: string };
         if (opts.format === "json" || opts.format === "yaml") {
           printOutput(result, { format: opts.format });
@@ -275,15 +278,20 @@ Examples:
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const workspace = resolveWorkspace({ ...localOpts, ...opts });
-      const project = localOpts.project ?? loadConfig().defaults.project;
-      if (!project) {
+      const workspace = (localOpts.workspace as string ?? opts.workspace as string) ?? loadConfig().defaults.workspace;
+      if (!workspace) {
+        printError("No workspace specified. Use --workspace or 'pmpm workspace use <slug>'.");
+        process.exit(EXIT_CODES.VALIDATION_ERROR);
+      }
+      const projectKey = localOpts.project ?? loadConfig().defaults.project;
+      if (!projectKey) {
         printError("No project specified.");
         process.exit(EXIT_CODES.VALIDATION_ERROR);
       }
       try {
+        const { projectId } = await resolveWorkspaceAndProject(workspace, projectKey, clientOpts);
         const result = await put(
-          `/api/workspaces/${workspace}/projects/${project}/description`,
+          `/api/projects/${projectId}/description`,
           { descriptionMd: localOpts.body },
           clientOpts
         );
@@ -316,17 +324,19 @@ Examples:
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const workspace = resolveWorkspace({ ...localOpts, ...opts });
-      const project = localOpts.project ?? loadConfig().defaults.project;
-      if (!project) {
+      const workspace = (localOpts.workspace as string ?? opts.workspace as string) ?? loadConfig().defaults.workspace;
+      if (!workspace) {
+        printError("No workspace specified. Use --workspace or 'pmpm workspace use <slug>'.");
+        process.exit(EXIT_CODES.VALIDATION_ERROR);
+      }
+      const projectKey = localOpts.project ?? loadConfig().defaults.project;
+      if (!projectKey) {
         printError("No project specified. Use --project or 'pmpm project use <key>'.");
         process.exit(EXIT_CODES.VALIDATION_ERROR);
       }
       try {
-        const result = await get(
-          `/api/workspaces/${workspace}/projects/${project}/members`,
-          clientOpts
-        );
+        const { projectId } = await resolveWorkspaceAndProject(workspace, projectKey, clientOpts);
+        const result = await get(`/api/projects/${projectId}/members`, clientOpts);
         printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
@@ -338,38 +348,43 @@ Examples:
   members
     .command("add")
     .description("Add a member to the project")
-    .argument("<user>", "User alias (e.g., @hiroki)")
+    .argument("<user>", "User ID")
     .option("--project <key>", "Project key")
     .option("--workspace <slug>", "Workspace slug")
     .option("--role <role>", "Project role (LEAD|MEMBER|REVIEWER|STAKEHOLDER)")
     .option("--title <title>", "Member title (e.g., Tech Lead)")
-    .option("--reports-to <user>", "Reporting line (user alias)")
+    .option("--reports-to <user>", "Reporting line (user ID)")
     .addHelpText(
       "after",
       `
 Examples:
-  pmpm project members add @hiroki --role LEAD --title "Tech Lead"
-  pmpm project members add @tanaka --role MEMBER --reports-to @hiroki
-  pmpm project members add @client_a --role STAKEHOLDER`
+  pmpm project members add userId123 --role LEAD --title "Tech Lead"
+  pmpm project members add userId456 --role MEMBER --reports-to userId123`
     )
     .action(async (user, localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const workspace = resolveWorkspace({ ...localOpts, ...opts });
-      const project = localOpts.project ?? loadConfig().defaults.project;
-      if (!project) {
+      const workspace = (localOpts.workspace as string ?? opts.workspace as string) ?? loadConfig().defaults.workspace;
+      if (!workspace) {
+        printError("No workspace specified. Use --workspace or 'pmpm workspace use <slug>'.");
+        process.exit(EXIT_CODES.VALIDATION_ERROR);
+      }
+      const projectKey = localOpts.project ?? loadConfig().defaults.project;
+      if (!projectKey) {
         printError("No project specified.");
         process.exit(EXIT_CODES.VALIDATION_ERROR);
       }
       try {
+        const { projectId } = await resolveWorkspaceAndProject(workspace, projectKey, clientOpts);
+        const body: Record<string, unknown> = {
+          userId: user,
+          role: localOpts.role ?? "MEMBER",
+        };
+        if (localOpts.title) body.title = localOpts.title;
+        if (localOpts.reportsTo) body.reportsToUserId = localOpts.reportsTo;
         const result = await post(
-          `/api/workspaces/${workspace}/projects/${project}/members`,
-          {
-            user,
-            role: localOpts.role,
-            title: localOpts.title,
-            reportsTo: localOpts.reportsTo,
-          },
+          `/api/projects/${projectId}/members`,
+          body,
           clientOpts
         );
         printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
@@ -399,19 +414,24 @@ Examples:
     .action(async (user, localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const workspace = resolveWorkspace({ ...localOpts, ...opts });
-      const project = localOpts.project ?? loadConfig().defaults.project;
-      if (!project) {
+      const workspace = (localOpts.workspace as string ?? opts.workspace as string) ?? loadConfig().defaults.workspace;
+      if (!workspace) {
+        printError("No workspace specified. Use --workspace or 'pmpm workspace use <slug>'.");
+        process.exit(EXIT_CODES.VALIDATION_ERROR);
+      }
+      const projectKey = localOpts.project ?? loadConfig().defaults.project;
+      if (!projectKey) {
         printError("No project specified.");
         process.exit(EXIT_CODES.VALIDATION_ERROR);
       }
-      const body: Record<string, unknown> = {};
-      if (localOpts.role) body.role = localOpts.role;
-      if (localOpts.title) body.title = localOpts.title;
-      if (localOpts.reportsTo) body.reportsTo = localOpts.reportsTo;
       try {
+        const { projectId } = await resolveWorkspaceAndProject(workspace, projectKey, clientOpts);
+        const body: Record<string, unknown> = {};
+        if (localOpts.role) body.role = localOpts.role;
+        if (localOpts.title) body.title = localOpts.title;
+        if (localOpts.reportsTo) body.reportsToUserId = localOpts.reportsTo;
         const result = await put(
-          `/api/workspaces/${workspace}/projects/${project}/members/${user}`,
+          `/api/projects/${projectId}/members/${user}`,
           body,
           clientOpts
         );
@@ -426,30 +446,32 @@ Examples:
   members
     .command("remove")
     .description("Remove a member from the project")
-    .argument("<user>", "User alias")
+    .argument("<user>", "User ID")
     .option("--project <key>", "Project key")
     .option("--workspace <slug>", "Workspace slug")
     .addHelpText(
       "after",
       `
 Examples:
-  pmpm project members remove @tanaka`
+  pmpm project members remove userId123`
     )
     .action(async (user, localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const workspace = resolveWorkspace({ ...localOpts, ...opts });
-      const project = localOpts.project ?? loadConfig().defaults.project;
-      if (!project) {
+      const workspace = (localOpts.workspace as string ?? opts.workspace as string) ?? loadConfig().defaults.workspace;
+      if (!workspace) {
+        printError("No workspace specified. Use --workspace or 'pmpm workspace use <slug>'.");
+        process.exit(EXIT_CODES.VALIDATION_ERROR);
+      }
+      const projectKey = localOpts.project ?? loadConfig().defaults.project;
+      if (!projectKey) {
         printError("No project specified.");
         process.exit(EXIT_CODES.VALIDATION_ERROR);
       }
       try {
-        await del(
-          `/api/workspaces/${workspace}/projects/${project}/members/${user}`,
-          clientOpts
-        );
-        printSuccess(`Member '${user}' removed from project '${project}'.`);
+        const { projectId } = await resolveWorkspaceAndProject(workspace, projectKey, clientOpts);
+        await del(`/api/projects/${projectId}/members/${user}`, clientOpts);
+        printSuccess(`Member '${user}' removed from project '${projectKey}'.`);
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to remove project member");
@@ -472,46 +494,24 @@ Examples:
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const workspace = resolveWorkspace({ ...localOpts, ...opts });
-      const project = localOpts.project ?? loadConfig().defaults.project;
-      if (!project) {
-        printError("No project specified.");
+      const workspace = (localOpts.workspace as string ?? opts.workspace as string) ?? loadConfig().defaults.workspace;
+      if (!workspace) {
+        printError("No workspace specified. Use --workspace or 'pmpm workspace use <slug>'.");
+        process.exit(EXIT_CODES.VALIDATION_ERROR);
+      }
+      const projectKey = localOpts.project ?? loadConfig().defaults.project;
+      if (!projectKey) {
+        printError("No project specified. Use --project or 'pmpm project use <key>'.");
         process.exit(EXIT_CODES.VALIDATION_ERROR);
       }
       try {
-        const result = await get(
-          `/api/workspaces/${workspace}/projects/${project}/members/tree`,
-          clientOpts
-        );
-        if (opts.format === "json" || opts.format === "yaml") {
-          printOutput(result, { format: opts.format });
-        } else {
-          // Render tree structure
-          printTree(result as TreeNode[], 0);
-        }
+        const { projectId } = await resolveWorkspaceAndProject(workspace, projectKey, clientOpts);
+        const result = await get(`/api/projects/${projectId}/members/tree`, clientOpts);
+        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
-        printError(apiErr.message ?? "Failed to get org tree");
+        printError(apiErr.message ?? "Failed to get project member tree");
         process.exit(apiErr.exitCode ?? EXIT_CODES.GENERAL_ERROR);
       }
     });
-}
-
-interface TreeNode {
-  user: string;
-  role: string;
-  title?: string;
-  children?: TreeNode[];
-}
-
-function printTree(nodes: TreeNode[], depth: number): void {
-  for (const node of nodes) {
-    const indent = "  ".repeat(depth);
-    const prefix = depth > 0 ? "|- " : "";
-    const title = node.title ? ` (${node.title})` : "";
-    console.log(`${indent}${prefix}${node.user} [${node.role}]${title}`);
-    if (node.children) {
-      printTree(node.children, depth + 1);
-    }
-  }
 }

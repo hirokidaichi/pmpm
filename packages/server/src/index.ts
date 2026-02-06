@@ -25,6 +25,7 @@ import { milestoneRoutes } from "./routes/milestone.js";
 import { riskRoutes } from "./routes/risk.js";
 import { reminderRoutes } from "./routes/reminder.js";
 import { dailyRoutes } from "./routes/daily.js";
+import { setupRoutes } from "./routes/setup.js";
 import { startScheduler } from "./scheduler.js";
 
 const app = new Hono<AppEnv>();
@@ -32,7 +33,13 @@ const app = new Hono<AppEnv>();
 // --- Middleware stack ---
 app.use("*", requestId);
 app.use("*", logger());
-app.use("*", cors());
+app.use(
+  "*",
+  cors({
+    origin: process.env.WEB_ORIGIN ?? "http://localhost:3001",
+    credentials: true,
+  }),
+);
 
 // Auth middleware: resolve user from session/bearer/api-key
 app.use("/api/*", async (c, next) => {
@@ -67,6 +74,7 @@ app.route("/api/milestones", milestoneRoutes);
 app.route("/api/risks", riskRoutes);
 app.route("/api/reminders", reminderRoutes);
 app.route("/api/daily-reports", dailyRoutes);
+app.route("/api/setup", setupRoutes);
 
 // --- Export types for Hono RPC ---
 export type AppType = typeof app;

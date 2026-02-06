@@ -16,7 +16,7 @@ export function TaskHeader({ task }: TaskHeaderProps) {
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         <span
-          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${importanceBadgeColor(importance)}`}
+          className={`inline-flex items-center rounded-none px-3 py-1 text-xs font-semibold ${importanceBadgeColor(importance)}`}
         >
           {ja.importance[importance as keyof typeof ja.importance] ?? importance}
         </span>

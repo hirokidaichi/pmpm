@@ -24,11 +24,11 @@ export function ProjectSummary({ summary }: ProjectSummaryProps) {
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="grid grid-cols-2 gap-4">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
+          <div className="rounded-none border border-white/10 bg-white/5 p-4 text-center">
             <p className="text-2xl font-bold text-white">{summary.total}</p>
             <p className="text-xs text-white/50">{ja.report.totalTasks}</p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
+          <div className="rounded-none border border-white/10 bg-white/5 p-4 text-center">
             <p className="text-2xl font-bold text-red-400">{summary.overdue}</p>
             <p className="text-xs text-white/50">{ja.report.overdue}</p>
           </div>
@@ -47,9 +47,9 @@ export function ProjectSummary({ summary }: ProjectSummaryProps) {
                   </span>
                   <span className="text-white/80">{item.count}</span>
                 </div>
-                <div className="h-1.5 w-full rounded-full bg-white/5">
+                <div className="h-1.5 w-full rounded-none bg-white/5">
                   <div
-                    className={`h-full rounded-full ${importanceBarColors[item.importance] ?? "bg-white/30"}`}
+                    className={`h-full rounded-none ${importanceBarColors[item.importance] ?? "bg-white/30"}`}
                     style={{
                       width: summary.total > 0
                         ? `${(item.count / summary.total) * 100}%`

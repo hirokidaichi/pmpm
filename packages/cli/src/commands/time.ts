@@ -2,6 +2,7 @@ import { Command } from "commander";
 import { get, post, del, extractClientOpts } from "../client/index.js";
 import { printOutput, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
+import { dateToEpoch } from "../helpers/resolve.js";
 
 export function registerTimeCommand(program: Command): void {
   const time = program
@@ -93,29 +94,27 @@ Examples:
     .argument("<task-id>", "Task ID")
     .requiredOption("--minutes <n>", "Duration in minutes")
     .option("--comment <text>", "Description of the work")
-    .option("--category <name>", "Time category (e.g., dev, review)")
-    .option("--date <date>", "Date of entry (YYYY-MM-DD, default: today)")
+    .option("--category <id>", "Time category ID")
     .addHelpText(
       "after",
       `
 Examples:
   pmpm time log 01HXK... --minutes 90
-  pmpm time log 01HXK... --minutes 60 --comment "Code review" --category review
-  pmpm time log 01HXK... --minutes 30 --date 2026-02-05`
+  pmpm time log 01HXK... --minutes 60 --comment "Code review" --category 01HXK...`
     )
     .action(async (taskId, localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
       try {
+        const body: Record<string, unknown> = {
+          taskId,
+          minutes: parseInt(localOpts.minutes, 10),
+        };
+        if (localOpts.comment) body.comment = localOpts.comment;
+        if (localOpts.category) body.categoryId = localOpts.category;
         const result = await post(
-          `/api/time/entries`,
-          {
-            taskId,
-            minutes: parseInt(localOpts.minutes, 10),
-            comment: localOpts.comment,
-            category: localOpts.category,
-            date: localOpts.date,
-          },
+          `/api/time/log`,
+          body,
           clientOpts
         );
         printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
@@ -131,28 +130,26 @@ Examples:
     .command("list")
     .alias("ls")
     .description("List time entries")
-    .option("--user <alias>", "Filter by user (default: me)")
+    .option("--user <id>", "Filter by user ID")
     .option("--from <date>", "Start date (YYYY-MM-DD)")
     .option("--to <date>", "End date (YYYY-MM-DD)")
     .option("--task <id>", "Filter by task ID")
-    .option("--category <name>", "Filter by category")
     .addHelpText(
       "after",
       `
 Examples:
   pmpm time list
-  pmpm time list --user me --from 2026-02-01 --to 2026-02-28
+  pmpm time list --user USER_ID --from 2026-02-01 --to 2026-02-28
   pmpm time list --task 01HXK... --format json`
     )
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
       const query: Record<string, string> = {};
-      if (localOpts.user) query.user = localOpts.user;
-      if (localOpts.from) query.from = localOpts.from;
-      if (localOpts.to) query.to = localOpts.to;
+      if (localOpts.user) query.userId = localOpts.user;
+      if (localOpts.from) query.from = String(dateToEpoch(localOpts.from));
+      if (localOpts.to) query.to = String(dateToEpoch(localOpts.to));
       if (localOpts.task) query.taskId = localOpts.task;
-      if (localOpts.category) query.category = localOpts.category;
       try {
         const result = await get(`/api/time/entries`, {
           ...clientOpts,
@@ -236,7 +233,7 @@ Examples:
       try {
         const result = await post(
           `/api/time/categories`,
-          { name: localOpts.name, billable: localOpts.billable ?? false },
+          { name: localOpts.name, isBillable: localOpts.billable ?? false },
           clientOpts
         );
         printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });

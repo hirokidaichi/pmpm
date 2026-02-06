@@ -156,4 +156,15 @@ export const en: Translations = {
     HIGH: "High",
     CRITICAL: "Critical",
   },
+  auth: {
+    signIn: "Sign In",
+    signOut: "Sign Out",
+    signInDescription: "Sign in to pmpm server",
+    email: "Email",
+    password: "Password",
+    signInWithEmail: "Sign in with Email",
+    signInWithGitHub: "Sign in with GitHub",
+    signingIn: "Signing in...",
+    loginFailed: "Sign in failed",
+  },
 };

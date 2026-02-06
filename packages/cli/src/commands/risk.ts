@@ -1,8 +1,21 @@
 import { Command } from "commander";
-import { get, post, put, del, extractClientOpts } from "../client/index.js";
+import { get, post, put, del, extractClientOpts, type ClientOptions } from "../client/index.js";
 import { loadConfig } from "../config/index.js";
 import { printOutput, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
+import { resolveWorkspaceId, resolveProjectId } from "../helpers/resolve.js";
+
+function resolveWorkspace(opts: Record<string, unknown>): string {
+  const ws =
+    (opts.workspace as string) ?? loadConfig().defaults.workspace;
+  if (!ws) {
+    printError(
+      "No workspace specified. Use --workspace or 'pmpm workspace use <slug>'."
+    );
+    process.exit(EXIT_CODES.VALIDATION_ERROR);
+  }
+  return ws;
+}
 
 function resolveProject(opts: Record<string, unknown>): string {
   const proj =
@@ -16,6 +29,16 @@ function resolveProject(opts: Record<string, unknown>): string {
   return proj;
 }
 
+async function resolveProjectIdFromOpts(
+  opts: Record<string, unknown>,
+  clientOpts: ClientOptions,
+): Promise<string> {
+  const workspaceSlug = resolveWorkspace(opts);
+  const projectKey = resolveProject(opts);
+  const workspaceId = await resolveWorkspaceId(workspaceSlug, clientOpts);
+  return resolveProjectId(projectKey, workspaceId, clientOpts);
+}
+
 export function registerRiskCommand(program: Command): void {
   const risk = program
     .command("risk")
@@ -26,6 +49,7 @@ export function registerRiskCommand(program: Command): void {
     .command("list")
     .alias("ls")
     .description("List risks for a project")
+    .option("--workspace <slug>", "Workspace slug")
     .option("--project <key>", "Project key")
     .option("--status <status>", "Filter by status (IDENTIFIED|MITIGATING|MITIGATED|OCCURRED|ACCEPTED)")
     .addHelpText(
@@ -39,8 +63,8 @@ Examples:
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const project = resolveProject({ ...localOpts, ...opts });
-      const query: Record<string, string> = { projectId: project };
+      const projectId = await resolveProjectIdFromOpts({ ...localOpts, ...opts }, clientOpts);
+      const query: Record<string, string> = { projectId };
       if (localOpts.status) query.status = localOpts.status;
       try {
         const result = await get("/api/risks", {
@@ -60,6 +84,7 @@ Examples:
     .command("create")
     .description("Create a new risk")
     .requiredOption("--title <title>", "Risk title")
+    .option("--workspace <slug>", "Workspace slug")
     .option("--project <key>", "Project key")
     .option("--probability <level>", "Probability (LOW|MEDIUM|HIGH)")
     .option("--impact <level>", "Impact (LOW|MEDIUM|HIGH|CRITICAL)")
@@ -76,12 +101,12 @@ Examples:
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
-      const project = resolveProject({ ...localOpts, ...opts });
+      const projectId = await resolveProjectIdFromOpts({ ...localOpts, ...opts }, clientOpts);
       try {
         const result = await post(
           "/api/risks",
           {
-            projectId: project,
+            projectId,
             title: localOpts.title,
             probability: localOpts.probability,
             impact: localOpts.impact,

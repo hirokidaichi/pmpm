@@ -1,8 +1,9 @@
 import { Command } from "commander";
-import { get, post, put, del, extractClientOpts } from "../client/index.js";
+import { get, post, put, del, extractClientOpts, type ClientOptions } from "../client/index.js";
 import { updateConfig, loadConfig } from "../config/index.js";
 import { printOutput, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
+import { resolveWorkspaceId } from "../client/resolver.js";
 
 export function registerWorkspaceCommand(program: Command): void {
   const ws = program
@@ -84,7 +85,8 @@ Examples:
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
       try {
-        const workspace = await get(`/api/workspaces/${slug}`, clientOpts);
+        const id = await resolveWorkspaceId(slug, clientOpts);
+        const workspace = await get(`/api/workspaces/${id}`, clientOpts);
         printOutput(workspace, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
@@ -113,7 +115,8 @@ Examples:
       if (localOpts.name) body.name = localOpts.name;
       if (localOpts.description) body.description = localOpts.description;
       try {
-        const result = await put(`/api/workspaces/${slug}`, body, clientOpts);
+        const id = await resolveWorkspaceId(slug, clientOpts);
+        const result = await put(`/api/workspaces/${id}`, body, clientOpts);
         printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
@@ -136,7 +139,8 @@ Examples:
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
       try {
-        await post(`/api/workspaces/${slug}/archive`, {}, clientOpts);
+        const id = await resolveWorkspaceId(slug, clientOpts);
+        await del(`/api/workspaces/${id}`, clientOpts);
         printSuccess(`Workspace '${slug}' archived.`);
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
@@ -176,22 +180,9 @@ Examples:
   pmpm workspace members list
   pmpm workspace members list --workspace eng`
     )
-    .action(async (localOpts, cmd) => {
-      const opts = cmd.optsWithGlobals();
-      const clientOpts = extractClientOpts(opts);
-      const workspace = localOpts.workspace ?? loadConfig().defaults.workspace;
-      if (!workspace) {
-        printError("No workspace specified. Use --workspace or 'pmpm workspace use <slug>'.");
-        process.exit(EXIT_CODES.VALIDATION_ERROR);
-      }
-      try {
-        const result = await get(`/api/workspaces/${workspace}/members`, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
-      } catch (err: unknown) {
-        const apiErr = err as { message?: string; exitCode?: number };
-        printError(apiErr.message ?? "Failed to list members");
-        process.exit(apiErr.exitCode ?? EXIT_CODES.GENERAL_ERROR);
-      }
+    .action(async () => {
+      printError("Workspace member management is not yet implemented.");
+      process.exit(EXIT_CODES.GENERAL_ERROR);
     });
 
   members
@@ -207,26 +198,9 @@ Examples:
   pmpm workspace members add @hiroki
   pmpm workspace members add @hiroki --workspace eng --role MEMBER`
     )
-    .action(async (user, localOpts, cmd) => {
-      const opts = cmd.optsWithGlobals();
-      const clientOpts = extractClientOpts(opts);
-      const workspace = localOpts.workspace ?? loadConfig().defaults.workspace;
-      if (!workspace) {
-        printError("No workspace specified.");
-        process.exit(EXIT_CODES.VALIDATION_ERROR);
-      }
-      try {
-        const result = await post(
-          `/api/workspaces/${workspace}/members`,
-          { user, role: localOpts.role },
-          clientOpts
-        );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
-      } catch (err: unknown) {
-        const apiErr = err as { message?: string; exitCode?: number };
-        printError(apiErr.message ?? "Failed to add member");
-        process.exit(apiErr.exitCode ?? EXIT_CODES.GENERAL_ERROR);
-      }
+    .action(async () => {
+      printError("Workspace member management is not yet implemented.");
+      process.exit(EXIT_CODES.GENERAL_ERROR);
     });
 
   members
@@ -240,21 +214,8 @@ Examples:
 Examples:
   pmpm workspace members remove @hiroki`
     )
-    .action(async (user, localOpts, cmd) => {
-      const opts = cmd.optsWithGlobals();
-      const clientOpts = extractClientOpts(opts);
-      const workspace = localOpts.workspace ?? loadConfig().defaults.workspace;
-      if (!workspace) {
-        printError("No workspace specified.");
-        process.exit(EXIT_CODES.VALIDATION_ERROR);
-      }
-      try {
-        await del(`/api/workspaces/${workspace}/members/${user}`, clientOpts);
-        printSuccess(`Member '${user}' removed from workspace '${workspace}'.`);
-      } catch (err: unknown) {
-        const apiErr = err as { message?: string; exitCode?: number };
-        printError(apiErr.message ?? "Failed to remove member");
-        process.exit(apiErr.exitCode ?? EXIT_CODES.GENERAL_ERROR);
-      }
+    .action(async () => {
+      printError("Workspace member management is not yet implemented.");
+      process.exit(EXIT_CODES.GENERAL_ERROR);
     });
 }

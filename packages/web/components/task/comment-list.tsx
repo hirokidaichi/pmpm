@@ -26,7 +26,7 @@ export function CommentList({ comments }: CommentListProps) {
             {comments.map((comment, index) => (
               <div key={(comment.id as string) ?? index}>
                 <div className="flex gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-none bg-white/10">
                     <User className="h-4 w-4 text-white/50" />
                   </div>
                   <div className="min-w-0 flex-1">

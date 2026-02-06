@@ -19,6 +19,17 @@ type RequestOptions = {
   signal?: AbortSignal;
 };
 
+async function getServerCookies(): Promise<string | undefined> {
+  try {
+    // Dynamic import so this doesn't break client-side bundles
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    return cookieStore.toString();
+  } catch {
+    return undefined;
+  }
+}
+
 async function request<T>(
   path: string,
   options: RequestOptions & RequestInit = {},
@@ -26,13 +37,24 @@ async function request<T>(
   const url = `${BASE_URL}${path}`;
   const { headers: customHeaders, next: nextConfig, signal, ...rest } = options;
 
+  const reqHeaders: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(customHeaders as Record<string, string> | undefined),
+  };
+
+  // Forward cookies from incoming request when running server-side (SSR)
+  if (typeof window === "undefined") {
+    const cookie = await getServerCookies();
+    if (cookie) {
+      reqHeaders["Cookie"] = cookie;
+    }
+  }
+
   const res = await fetch(url, {
     ...rest,
     signal,
-    headers: {
-      "Content-Type": "application/json",
-      ...customHeaders,
-    },
+    credentials: "include",
+    headers: reqHeaders,
     next: nextConfig,
   });
 

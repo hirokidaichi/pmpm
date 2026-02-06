@@ -35,9 +35,9 @@ Examples:
       const clientOpts = extractClientOpts(opts);
       try {
         const body: Record<string, unknown> = {
-          fromTaskId: localOpts.from,
-          toTaskId: localOpts.to,
-          type: localOpts.type,
+          predecessorTaskId: localOpts.from,
+          successorTaskId: localOpts.to,
+          depType: localOpts.type,
         };
         if (localOpts.lag) body.lagMinutes = parseInt(localOpts.lag, 10);
         const result = await post(`/api/dependencies`, body, clientOpts);
@@ -66,7 +66,7 @@ Examples:
       const opts = cmd.optsWithGlobals();
       const clientOpts = extractClientOpts(opts);
       try {
-        const result = await get(`/api/tasks/${taskId}/dependencies`, clientOpts);
+        const result = await get(`/api/dependencies/task/${taskId}`, clientOpts);
         printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };

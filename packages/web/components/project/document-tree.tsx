@@ -20,7 +20,7 @@ function TreeNode({ node, depth }: { node: DocNode; depth: number }) {
   return (
     <div>
       <div
-        className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-white/5 transition-colors"
+        className="flex items-center gap-2 rounded-none px-2 py-1.5 hover:bg-white/5 transition-colors"
         style={{ paddingLeft: `${depth * 20 + 8}px` }}
       >
         {hasChildren ? (

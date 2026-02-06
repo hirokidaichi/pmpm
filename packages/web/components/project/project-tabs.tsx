@@ -20,28 +20,28 @@ export function ProjectTabs({
 
   return (
     <Tabs defaultValue="tasks" className="w-full">
-      <TabsList className="glass-chip w-full justify-start gap-1 rounded-2xl bg-white/5 p-1">
+      <TabsList className="glass-chip w-full justify-start gap-1 rounded-none bg-white/5 p-1">
         <TabsTrigger
           value="tasks"
-          className="rounded-xl data-[state=active]:bg-teal-500/20 data-[state=active]:text-teal-200 data-[state=active]:shadow-none text-white/60"
+          className="rounded-none data-[state=active]:bg-teal-500/20 data-[state=active]:text-teal-200 data-[state=active]:shadow-none text-white/60"
         >
           {t.project.tasks}
         </TabsTrigger>
         <TabsTrigger
           value="milestones"
-          className="rounded-xl data-[state=active]:bg-teal-500/20 data-[state=active]:text-teal-200 data-[state=active]:shadow-none text-white/60"
+          className="rounded-none data-[state=active]:bg-teal-500/20 data-[state=active]:text-teal-200 data-[state=active]:shadow-none text-white/60"
         >
           {t.project.milestones}
         </TabsTrigger>
         <TabsTrigger
           value="risks"
-          className="rounded-xl data-[state=active]:bg-teal-500/20 data-[state=active]:text-teal-200 data-[state=active]:shadow-none text-white/60"
+          className="rounded-none data-[state=active]:bg-teal-500/20 data-[state=active]:text-teal-200 data-[state=active]:shadow-none text-white/60"
         >
           {t.project.risks}
         </TabsTrigger>
         <TabsTrigger
           value="documents"
-          className="rounded-xl data-[state=active]:bg-teal-500/20 data-[state=active]:text-teal-200 data-[state=active]:shadow-none text-white/60"
+          className="rounded-none data-[state=active]:bg-teal-500/20 data-[state=active]:text-teal-200 data-[state=active]:shadow-none text-white/60"
         >
           {t.project.documents}
         </TabsTrigger>

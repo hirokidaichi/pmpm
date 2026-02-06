@@ -46,7 +46,7 @@ export function Sidebar() {
             href={item.href}
             onClick={() => setMobileOpen(false)}
             className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition",
+              "flex items-center gap-3 rounded-none px-3 py-2.5 text-sm font-medium transition",
               active
                 ? "bg-teal-500/15 text-teal-300"
                 : "text-white/60 hover:bg-white/5 hover:text-white/90"
@@ -55,7 +55,7 @@ export function Sidebar() {
             <Icon className="h-4 w-4 shrink-0" />
             <span className="truncate">{label}</span>
             {item.labelKey === "inbox" && inboxCount > 0 && (
-              <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-teal-500 px-1.5 text-[10px] font-bold text-navy-950">
+              <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-none bg-teal-500 px-1.5 text-[10px] font-bold text-navy-950">
                 {inboxCount > 99 ? "99+" : inboxCount}
               </span>
             )}
@@ -70,7 +70,7 @@ export function Sidebar() {
       {/* Mobile toggle */}
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
-        className="fixed left-4 top-4 z-50 rounded-lg p-2 text-white/70 hover:bg-white/10 lg:hidden"
+        className="fixed left-4 top-4 z-50 rounded-none p-2 text-white/70 hover:bg-white/10 lg:hidden"
         aria-label="Toggle menu"
       >
         {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
