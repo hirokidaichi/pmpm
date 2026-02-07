@@ -8,6 +8,7 @@ import {
   Inbox,
   BarChart3,
   FileText,
+  Settings,
   Menu,
   X,
 } from "lucide-react";
@@ -22,6 +23,7 @@ const navItems = [
   { href: "/inbox", icon: Inbox, labelKey: "inbox" as const },
   { href: "/reports", icon: BarChart3, labelKey: "reports" as const },
   { href: "/daily", icon: FileText, labelKey: "daily" as const },
+  { href: "/settings", icon: Settings, labelKey: "settings" as const },
 ];
 
 export function Sidebar() {

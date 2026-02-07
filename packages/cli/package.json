@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "bin": {
-    "pmpm": "./dist/index.js"
+    "pmpm": "./bin/pmpm.mjs"
   },
   "scripts": {
     "build": "tsc",

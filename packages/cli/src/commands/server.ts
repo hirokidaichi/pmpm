@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { get, post, put, del, extractClientOpts } from "../client/index.js";
+import { saveCredentials } from "../config/index.js";
 import { printOutput, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
 
@@ -44,9 +45,24 @@ Examples:
           { server: opts.server },
         );
 
+        // Auto-login: sign in and save token
+        try {
+          const signIn = await post<{ token: string }>(
+            `/api/auth/sign-in/email`,
+            { email: localOpts.email, password: localOpts.password },
+            { server: opts.server },
+          );
+          saveCredentials(
+            { access_token: signIn.token },
+            opts.profile ?? "default",
+          );
+        } catch {
+          // Sign-in failed, user can login manually
+        }
+
         printSuccess(result.message ?? "Server setup complete!");
         console.log(`  Admin user: ${result.user.email}`);
-        console.log(`  Run 'pmpm auth login' to authenticate.`);
+        console.log(`  You are now logged in.`);
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Setup failed");

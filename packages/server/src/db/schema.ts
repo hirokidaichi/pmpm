@@ -195,6 +195,8 @@ export const pmTask = sqliteTable("pm_task", {
   startAt: integer("start_at"),
   dueAt: integer("due_at"),
   effortMinutes: integer("effort_minutes"),
+  optimisticMinutes: integer("optimistic_minutes"),
+  pessimisticMinutes: integer("pessimistic_minutes"),
   storyPoints: real("story_points"),
   position: integer("position").notNull().default(0),
   createdBy: text("created_by").notNull(),
@@ -398,6 +400,27 @@ export const pmDependency = sqliteTable("pm_dependency", {
 ]);
 
 // ---------------------------------------------------------------------------
+// Buffer (CCPM)
+// ---------------------------------------------------------------------------
+
+export const pmBuffer = sqliteTable("pm_buffer", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id").notNull().references(() => pmProject.id),
+  bufferType: text("buffer_type", { enum: ["PROJECT", "FEEDING"] }).notNull(),
+  name: text("name").notNull(),
+  sizeMinutes: integer("size_minutes").notNull(),
+  consumedMinutes: integer("consumed_minutes").notNull().default(0),
+  feedingSourceTaskId: text("feeding_source_task_id").references(() => pmTask.id),
+  chainTaskIds: text("chain_task_ids").notNull(),
+  status: text("status", { enum: ["ACTIVE", "ARCHIVED"] }).notNull().default("ACTIVE"),
+  createdBy: text("created_by").notNull(),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
+}, (table) => [
+  index("idx_pm_buffer_project").on(table.projectId, table.bufferType),
+]);
+
+// ---------------------------------------------------------------------------
 // Inbox
 // ---------------------------------------------------------------------------
 
@@ -580,6 +603,7 @@ export const pmProjectRelations = relations(pmProject, ({ one, many }) => ({
   customFields: many(pmCustomField),
   milestones: many(pmMilestone),
   risks: many(pmRisk),
+  buffers: many(pmBuffer),
   dailyReports: many(pmDailyReport),
 }));
 
@@ -810,6 +834,17 @@ export const pmReminderRelations = relations(pmReminder, ({ one }) => ({
     fields: [pmReminder.targetUserId],
     references: [pmUserProfile.userId],
     relationName: "reminderTarget",
+  }),
+}));
+
+export const pmBufferRelations = relations(pmBuffer, ({ one }) => ({
+  project: one(pmProject, {
+    fields: [pmBuffer.projectId],
+    references: [pmProject.id],
+  }),
+  feedingSourceTask: one(pmTask, {
+    fields: [pmBuffer.feedingSourceTaskId],
+    references: [pmTask.id],
   }),
 }));
 

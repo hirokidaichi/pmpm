@@ -16,88 +16,45 @@ export function registerAuthCommand(program: Command): void {
   // ── login ──
   auth
     .command("login")
-    .description("Log in via Device Flow (opens browser)")
+    .description("Log in with email and password")
+    .requiredOption("--email <email>", "Email address")
+    .requiredOption("--password <password>", "Password")
     .option("--server <url>", "Server URL to authenticate against")
     .addHelpText(
       "after",
       `
 Examples:
-  pmpm auth login                              # Login to default server
-  pmpm auth login --server https://pmpm.co     # Login to specific server`
+  pmpm auth login --email admin@example.com --password secret123
+  pmpm auth login --email admin@example.com --password secret123 --server https://pmpm.co`
     )
-    .action(async (_opts, cmd) => {
+    .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
       const serverUrl = resolveServerUrl({ server: opts.server });
 
       try {
         console.log(`Authenticating with ${serverUrl}...`);
 
-        // Step 1: Request device code
-        const deviceResponse = await post<{
-          deviceCode: string;
-          userCode: string;
-          verificationUri: string;
-          expiresIn: number;
-          interval: number;
-        }>("/auth/device/code", {}, { server: serverUrl });
+        const response = await post<{
+          token: string;
+          user: { id: string; email: string; name?: string };
+        }>("/api/auth/sign-in/email", {
+          email: localOpts.email,
+          password: localOpts.password,
+        }, { server: serverUrl });
 
-        console.log();
-        console.log("Open this URL in your browser:");
-        console.log(`  ${deviceResponse.verificationUri}`);
-        console.log();
-        console.log(`Enter the code: ${deviceResponse.userCode}`);
-        console.log();
-        console.log("Waiting for authorization...");
+        // Save credentials
+        saveCredentials(
+          {
+            access_token: response.token,
+          },
+          opts.profile ?? "default"
+        );
 
-        // Step 2: Poll for token
-        const interval = (deviceResponse.interval ?? 5) * 1000;
-        const deadline = Date.now() + deviceResponse.expiresIn * 1000;
-
-        while (Date.now() < deadline) {
-          await new Promise((resolve) => setTimeout(resolve, interval));
-
-          try {
-            const tokenResponse = await post<{
-              accessToken: string;
-              refreshToken?: string;
-              expiresIn?: number;
-            }>("/auth/device/token", {
-              deviceCode: deviceResponse.deviceCode,
-            }, { server: serverUrl });
-
-            // Save credentials
-            saveCredentials(
-              {
-                access_token: tokenResponse.accessToken,
-                refresh_token: tokenResponse.refreshToken,
-                expires_at: tokenResponse.expiresIn
-                  ? Math.floor(Date.now() / 1000) + tokenResponse.expiresIn
-                  : undefined,
-              },
-              opts.profile ?? "default"
-            );
-
-            printSuccess("Login successful!");
-            return;
-          } catch (err: unknown) {
-            const apiErr = err as { apiError?: { code?: string } };
-            if (apiErr.apiError?.code === "authorization_pending") {
-              continue;
-            }
-            if (apiErr.apiError?.code === "slow_down") {
-              await new Promise((resolve) => setTimeout(resolve, 5000));
-              continue;
-            }
-            throw err;
-          }
-        }
-
-        printError("Authorization timed out. Please try again.");
-        process.exit(EXIT_CODES.AUTH_ERROR);
+        printSuccess(`Login successful! Welcome, ${response.user.name ?? response.user.email}`);
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
-        printError(apiErr.message ?? "Login failed");
-        process.exit(apiErr.exitCode ?? EXIT_CODES.GENERAL_ERROR);
+        printError(apiErr.message ?? "Login failed. Check your email and password.");
+        process.exit(apiErr.exitCode ?? EXIT_CODES.AUTH_ERROR);
       }
     });
 

@@ -64,6 +64,11 @@ export const ErrorCode = {
   TIMER_ALREADY_RUNNING: "TIMER_ALREADY_RUNNING",
   TIMER_NOT_RUNNING: "TIMER_NOT_RUNNING",
   TIME_ENTRY_NOT_FOUND: "TIME_ENTRY_NOT_FOUND",
+
+  // Buffer (CCPM)
+  BUFFER_NOT_FOUND: "BUFFER_NOT_FOUND",
+  CCPM_INSUFFICIENT_DATA: "CCPM_INSUFFICIENT_DATA",
+  CCPM_NO_DEPENDENCIES: "CCPM_NO_DEPENDENCIES",
 } as const;
 
 export type ErrorCodeType = (typeof ErrorCode)[keyof typeof ErrorCode];
@@ -101,6 +106,9 @@ const httpStatusMap: Record<string, number> = {
   [ErrorCode.DEPENDENCY_CIRCULAR]: 422,
   [ErrorCode.TIMER_ALREADY_RUNNING]: 422,
   [ErrorCode.TIMER_NOT_RUNNING]: 422,
+  [ErrorCode.BUFFER_NOT_FOUND]: 404,
+  [ErrorCode.CCPM_INSUFFICIENT_DATA]: 422,
+  [ErrorCode.CCPM_NO_DEPENDENCIES]: 422,
   [ErrorCode.ATTACHMENT_TOO_LARGE]: 413,
   [ErrorCode.RATE_LIMITED]: 429,
   [ErrorCode.INTERNAL_ERROR]: 500,

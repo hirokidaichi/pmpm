@@ -25,8 +25,10 @@ import { milestoneRoutes } from "./routes/milestone.js";
 import { riskRoutes } from "./routes/risk.js";
 import { reminderRoutes } from "./routes/reminder.js";
 import { dailyRoutes } from "./routes/daily.js";
+import { ccpmRoutes } from "./routes/ccpm.js";
 import { setupRoutes } from "./routes/setup.js";
 import { startScheduler } from "./scheduler.js";
+import { autoMigrate } from "./db/auto-migrate.js";
 
 const app = new Hono<AppEnv>();
 
@@ -74,6 +76,7 @@ app.route("/api/milestones", milestoneRoutes);
 app.route("/api/risks", riskRoutes);
 app.route("/api/reminders", reminderRoutes);
 app.route("/api/daily-reports", dailyRoutes);
+app.route("/api/ccpm", ccpmRoutes);
 app.route("/api/setup", setupRoutes);
 
 // --- Export types for Hono RPC ---
@@ -82,12 +85,19 @@ export type AppType = typeof app;
 // --- Start server ---
 const port = Number(process.env.PORT ?? 3000);
 
-serve(
-  { fetch: app.fetch, port },
-  (info) => {
-    console.log(`pmpm server listening on http://localhost:${info.port}`);
-    startScheduler();
-  },
-);
+autoMigrate()
+  .then(() => {
+    serve(
+      { fetch: app.fetch, port },
+      (info) => {
+        console.log(`pmpm server listening on http://localhost:${info.port}`);
+        startScheduler();
+      },
+    );
+  })
+  .catch((err) => {
+    console.error("[Migration] Failed:", err);
+    process.exit(1);
+  });
 
 export default app;

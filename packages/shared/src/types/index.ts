@@ -17,6 +17,8 @@ import type {
   RiskStatus,
   ReminderRepeatType,
   ReminderStatus,
+  BufferType,
+  BufferStatus,
 } from "../constants/index.js";
 
 // ── Branded primitives ──
@@ -128,6 +130,8 @@ export interface Task {
   startAt: UnixMs | null;
   dueAt: UnixMs | null;
   effortMinutes: number | null;
+  optimisticMinutes: number | null;
+  pessimisticMinutes: number | null;
   storyPoints: number | null;
   position: number;
   createdBy: Id;
@@ -406,6 +410,77 @@ export interface DailyReport {
   issues: string | null;
   createdAt: UnixMs;
   updatedAt: UnixMs;
+}
+
+// ── Buffer (CCPM) ──
+
+export interface Buffer {
+  id: Id;
+  projectId: Id;
+  bufferType: BufferType;
+  name: string;
+  sizeMinutes: number;
+  consumedMinutes: number;
+  feedingSourceTaskId: Id | null;
+  chainTaskIds: string;
+  status: BufferStatus;
+  createdBy: Id;
+  createdAt: UnixMs;
+  updatedAt: UnixMs;
+}
+
+// ── Critical Chain Analysis (CCPM) ──
+
+export interface CriticalChainTask {
+  taskId: Id;
+  title: string;
+  optimisticMinutes: number;
+  pessimisticMinutes: number;
+  assigneeUserIds: Id[];
+  earlyStart: number;
+  earlyFinish: number;
+}
+
+export interface CriticalChainResult {
+  criticalChain: CriticalChainTask[];
+  feedingChains: Array<{
+    mergeTaskId: Id;
+    tasks: CriticalChainTask[];
+  }>;
+  projectBufferMinutes: number;
+  feedingBuffers: Array<{
+    mergeTaskId: Id;
+    bufferMinutes: number;
+  }>;
+  totalProjectDurationMinutes: number;
+}
+
+// ── Project Forecast (CCPM Monte Carlo) ──
+
+export interface ForecastPercentile {
+  durationMinutes: number;
+  finishDate: string | null;
+}
+
+export interface ForecastHistogramBin {
+  minMinutes: number;
+  maxMinutes: number;
+  count: number;
+}
+
+export interface ProjectForecast {
+  startDate: string | null;
+  deterministicDurationMinutes: number;
+  deterministicFinishDate: string | null;
+  simulations: number;
+  percentiles: {
+    p50: ForecastPercentile;
+    p75: ForecastPercentile;
+    p80: ForecastPercentile;
+    p90: ForecastPercentile;
+    p95: ForecastPercentile;
+  };
+  histogram: ForecastHistogramBin[];
 }
 
 // ── Access Role (union of server + project roles) ──

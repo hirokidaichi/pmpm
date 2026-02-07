@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { api } from "@/lib/api/client";
 
 export function useInboxCount() {
   const [count, setCount] = useState(0);
@@ -10,13 +11,10 @@ export function useInboxCount() {
 
     async function fetchCount() {
       try {
-        const res = await fetch("/api/inbox/count");
-        if (res.ok) {
-          const data = await res.json();
-          if (active) setCount(data.unread ?? data.count ?? 0);
-        }
+        const data = await api.get<{ unread: number }>("/api/inbox/count");
+        if (active) setCount(data.unread ?? 0);
       } catch {
-        // silently ignore network errors
+        // silently ignore network/auth errors
       }
     }
 

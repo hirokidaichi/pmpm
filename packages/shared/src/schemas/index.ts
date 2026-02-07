@@ -18,6 +18,8 @@ import {
   RISK_STATUSES,
   REMINDER_REPEAT_TYPES,
   REMINDER_STATUSES,
+  BUFFER_TYPES,
+  BUFFER_STATUSES,
 } from "../constants/index.js";
 
 // ── Reusable primitives ──
@@ -120,6 +122,8 @@ export const createTaskSchema = z.object({
   startAt: unixMs.optional(),
   dueAt: unixMs.optional(),
   effortMinutes: z.number().int().nonnegative().optional(),
+  optimisticMinutes: z.number().int().nonnegative().optional(),
+  pessimisticMinutes: z.number().int().nonnegative().optional(),
   storyPoints: z.number().nonnegative().optional(),
   assignees: z
     .array(
@@ -141,6 +145,8 @@ export const updateTaskSchema = z.object({
   startAt: unixMs.nullish(),
   dueAt: unixMs.nullish(),
   effortMinutes: z.number().int().nonnegative().nullish(),
+  optimisticMinutes: z.number().int().nonnegative().nullish(),
+  pessimisticMinutes: z.number().int().nonnegative().nullish(),
   storyPoints: z.number().nonnegative().nullish(),
   position: z.number().int().nonnegative().optional(),
 });
@@ -470,6 +476,25 @@ export const updateDailyReportSchema = z.object({
   issues: z.string().max(10000).nullish(),
 });
 export type UpdateDailyReportInput = z.infer<typeof updateDailyReportSchema>;
+
+// ── Buffer (CCPM) ──
+
+export const createBufferSchema = z.object({
+  projectId: id,
+  bufferType: z.enum(BUFFER_TYPES),
+  name: z.string().min(1).max(200),
+  sizeMinutes: z.number().int().nonnegative(),
+  feedingSourceTaskId: id.optional(),
+  chainTaskIds: z.array(id),
+});
+export type CreateBufferInput = z.infer<typeof createBufferSchema>;
+
+export const updateBufferSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  consumedMinutes: z.number().int().nonnegative().optional(),
+  status: z.enum(BUFFER_STATUSES).optional(),
+});
+export type UpdateBufferInput = z.infer<typeof updateBufferSchema>;
 
 // ── List Query (shared across all list endpoints) ──
 

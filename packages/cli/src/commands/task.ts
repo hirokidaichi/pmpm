@@ -40,6 +40,8 @@ export function registerTaskCommand(program: Command): void {
     .option("--parent <id>", "Parent task ID (creates subtask)")
     .option("--importance <level>", "Importance: LOW|NORMAL|HIGH|CRITICAL")
     .option("--due <date>", "Due date (YYYY-MM-DD)")
+    .option("--optimistic <minutes>", "Optimistic estimate in minutes (CCPM)")
+    .option("--pessimistic <minutes>", "Pessimistic estimate in minutes (CCPM)")
     .addHelpText(
       "after",
       `
@@ -47,7 +49,8 @@ Examples:
   pmpm task add --title "Implement login page"
   pmpm task add --title "API design" --project BE --assignee userId123
   pmpm task add --title "DB migration" --parent 01HXK... --importance HIGH
-  pmpm task add --title "Fix bug" --due 2026-03-15`
+  pmpm task add --title "Fix bug" --due 2026-03-15
+  pmpm task add --title "Feature X" --optimistic 60 --pessimistic 180`
     )
     .action(async (localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
@@ -61,6 +64,8 @@ Examples:
       if (localOpts.parent) body.parentTaskId = localOpts.parent;
       if (localOpts.importance) body.importance = localOpts.importance;
       if (localOpts.due) body.dueAt = localOpts.due;
+      if (localOpts.optimistic) body.optimisticMinutes = parseInt(localOpts.optimistic, 10);
+      if (localOpts.pessimistic) body.pessimisticMinutes = parseInt(localOpts.pessimistic, 10);
       if (localOpts.assignee) {
         body.assignees = localOpts.assignee.split(",").map((a: string) => ({
           userId: a.trim(),
@@ -163,13 +168,16 @@ Examples:
     .option("--importance <level>", "New importance (LOW|NORMAL|HIGH|CRITICAL)")
     .option("--due <date>", "New due date (YYYY-MM-DD)")
     .option("--parent <id>", "New parent task ID (use 'root' for no parent)")
+    .option("--optimistic <minutes>", "Optimistic estimate in minutes (CCPM)")
+    .option("--pessimistic <minutes>", "Pessimistic estimate in minutes (CCPM)")
     .addHelpText(
       "after",
       `
 Examples:
   pmpm task edit 01HXK... --title "Updated title" --description "New description"
   pmpm task edit 01HXK... --importance HIGH --due 2026-03-15
-  pmpm task edit 01HXK... --parent root`
+  pmpm task edit 01HXK... --parent root
+  pmpm task edit 01HXK... --optimistic 60 --pessimistic 180`
     )
     .action(async (id, localOpts, cmd) => {
       const opts = cmd.optsWithGlobals();
@@ -182,6 +190,8 @@ Examples:
       if (localOpts.parent) {
         body.parentTaskId = localOpts.parent === "root" ? null : localOpts.parent;
       }
+      if (localOpts.optimistic) body.optimisticMinutes = parseInt(localOpts.optimistic, 10);
+      if (localOpts.pessimistic) body.pessimisticMinutes = parseInt(localOpts.pessimistic, 10);
       try {
         const result = await put(`/api/tasks/${id}`, body, clientOpts);
         printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });

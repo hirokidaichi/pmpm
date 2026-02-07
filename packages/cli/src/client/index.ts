@@ -86,6 +86,7 @@ export async function apiRequest<T>(
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     Accept: "application/json",
+    Origin: serverUrl,
   };
 
   if (auth) {

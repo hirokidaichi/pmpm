@@ -1,11 +1,13 @@
-export const dynamic = "force-dynamic";
+"use client";
 
-import { ja } from "@/lib/i18n/ja";
-import { getInbox } from "@/lib/api/endpoints";
+import { useState } from "react";
+import { useI18n } from "@/lib/i18n";
+import { useInbox, useMarkRead, useMarkAllRead } from "@/lib/hooks/use-inbox";
 import { formatRelativeTime } from "@/lib/format";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Inbox, Mail } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Inbox, Mail, Send, CheckCheck } from "lucide-react";
+import { SendMessageDialog } from "@/components/inbox/send-message-dialog";
 
 const typeBadgeColors: Record<string, string> = {
   MENTION: "bg-purple-500/20 text-purple-300 border-purple-400/30",
@@ -17,9 +19,34 @@ const typeBadgeColors: Record<string, string> = {
   SYSTEM: "bg-white/10 text-white/60 border-white/10",
 };
 
-export default async function InboxPage() {
-  const data = await getInbox({ limit: 50 });
-  const messages = data.items;
+export default function InboxPage() {
+  const { t } = useI18n();
+  const { messages, total, loading, refresh } = useInbox({ limit: 50 });
+  const { markRead } = useMarkRead();
+  const { markAllRead, loading: markingAll } = useMarkAllRead();
+  const [sendOpen, setSendOpen] = useState(false);
+
+  const handleMarkAllRead = async () => {
+    await markAllRead();
+    refresh();
+  };
+
+  const handleClickMessage = async (msg: Record<string, unknown>) => {
+    if (!msg.readAt) {
+      await markRead(msg.id as string);
+      refresh();
+    }
+  };
+
+  if (loading) {
+    return (
+      <main className="px-6 pb-20 pt-10">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-center py-20">
+          <p className="text-white/40">{t.common.loading}</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="px-6 pb-20 pt-10">
@@ -28,11 +55,27 @@ export default async function InboxPage() {
           <div className="flex h-10 w-10 items-center justify-center rounded-none bg-teal-500/20 text-teal-200">
             <Inbox className="h-5 w-5" />
           </div>
-          <div>
-            <h1 className="font-display text-2xl text-white">{ja.inbox.title}</h1>
+          <div className="flex-1">
+            <h1 className="font-display text-2xl text-white">{t.inbox.title}</h1>
             <p className="text-sm text-white/50">
-              {ja.common.total}: {data.total}
+              {t.common.total}: {total}
             </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMarkAllRead}
+              disabled={markingAll}
+              className="border-white/10 text-white/60 hover:bg-white/5"
+            >
+              <CheckCheck className="mr-1 h-4 w-4" />
+              {t.inbox.markAllRead}
+            </Button>
+            <Button size="sm" onClick={() => setSendOpen(true)}>
+              <Send className="mr-1 h-4 w-4" />
+              {t.inbox.sendMessage}
+            </Button>
           </div>
         </header>
 
@@ -40,7 +83,7 @@ export default async function InboxPage() {
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16">
               <Mail className="mb-4 h-12 w-12 text-white/20" />
-              <p className="text-sm text-white/40">{ja.inbox.noMessages}</p>
+              <p className="text-sm text-white/40">{t.inbox.noMessages}</p>
             </CardContent>
           </Card>
         ) : (
@@ -49,12 +92,13 @@ export default async function InboxPage() {
               const isUnread = !(msg.readAt);
               const msgType = (msg.messageType as string) ?? "SYSTEM";
               const typeLabel =
-                ja.inbox.types[msgType as keyof typeof ja.inbox.types] ?? msgType;
+                t.inbox.types[msgType as keyof typeof t.inbox.types] ?? msgType;
 
               return (
                 <Card
                   key={msg.id as string}
-                  className={isUnread ? "border-teal-400/20" : ""}
+                  className={`cursor-pointer transition-colors hover:bg-white/5 ${isUnread ? "border-teal-400/20" : ""}`}
+                  onClick={() => handleClickMessage(msg)}
                 >
                   <CardContent className="flex items-start gap-4 px-6 py-4">
                     {isUnread && (
@@ -89,6 +133,12 @@ export default async function InboxPage() {
           </div>
         )}
       </div>
+
+      <SendMessageDialog
+        open={sendOpen}
+        onOpenChange={setSendOpen}
+        onSent={refresh}
+      />
     </main>
   );
 }

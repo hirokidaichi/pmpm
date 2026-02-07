@@ -21,6 +21,7 @@ import { registerMilestoneCommand } from "./commands/milestone.js";
 import { registerRiskCommand } from "./commands/risk.js";
 import { registerRemindCommand } from "./commands/remind.js";
 import { registerDailyCommand } from "./commands/daily.js";
+import { registerCcpmCommand } from "./commands/ccpm.js";
 
 const program = new Command();
 
@@ -58,6 +59,7 @@ registerMilestoneCommand(program);
 registerRiskCommand(program);
 registerRemindCommand(program);
 registerDailyCommand(program);
+registerCcpmCommand(program);
 
 // ── Global error handler ──
 program.exitOverride();

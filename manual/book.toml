@@ -1,0 +1,13 @@
+[book]
+title = "pmpm 日本語マニュアル"
+authors = ["pmpm contributors"]
+language = "ja"
+multilingual = false
+src = "src"
+
+[build]
+build-dir = "book"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"

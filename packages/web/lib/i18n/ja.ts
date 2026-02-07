@@ -5,6 +5,7 @@ export type Translations = {
     inbox: string;
     reports: string;
     daily: string;
+    settings: string;
   };
   dashboard: {
     title: string;
@@ -32,6 +33,18 @@ export type Translations = {
     projects: string;
     members: string;
     created: string;
+    create: string;
+    edit: string;
+    archive: string;
+    archiveConfirm: string;
+    name: string;
+    slug: string;
+    description: string;
+    nameRequired: string;
+    slugRequired: string;
+    slugPattern: string;
+    creating: string;
+    updating: string;
   };
   project: {
     title: string;
@@ -45,6 +58,25 @@ export type Translations = {
     startDate: string;
     dueDate: string;
     noProjects: string;
+    create: string;
+    edit: string;
+    archive: string;
+    archiveConfirm: string;
+    name: string;
+    key: string;
+    description: string;
+    nameRequired: string;
+    keyRequired: string;
+    keyPattern: string;
+    creating: string;
+    updating: string;
+    addMember: string;
+    removeMember: string;
+    removeMemberConfirm: string;
+    role: string;
+    memberTitle: string;
+    userId: string;
+    userIdRequired: string;
   };
   task: {
     title: string;
@@ -66,6 +98,15 @@ export type Translations = {
     completed: string;
     missed: string;
     noMilestones: string;
+    create: string;
+    edit: string;
+    deleteConfirm: string;
+    name: string;
+    description: string;
+    dueAt: string;
+    status: string;
+    creating: string;
+    updating: string;
   };
   risk: {
     title: string;
@@ -74,6 +115,38 @@ export type Translations = {
     status: string;
     mitigation: string;
     noRisks: string;
+    create: string;
+    edit: string;
+    deleteConfirm: string;
+    creating: string;
+    updating: string;
+  };
+  document: {
+    title: string;
+    create: string;
+    edit: string;
+    deleteConfirm: string;
+    docTitle: string;
+    contentType: string;
+    body: string;
+    parentDocument: string;
+    none: string;
+    creating: string;
+    updating: string;
+  };
+  time: {
+    logTime: string;
+    startTimer: string;
+    stopTimer: string;
+    timerRunning: string;
+    minutes: string;
+    comment: string;
+    category: string;
+    noCategory: string;
+    createCategory: string;
+    categoryName: string;
+    deleteConfirm: string;
+    logging: string;
   };
   inbox: {
     title: string;
@@ -81,6 +154,11 @@ export type Translations = {
     all: string;
     noMessages: string;
     markAllRead: string;
+    sendMessage: string;
+    recipient: string;
+    messageTitle: string;
+    messageBody: string;
+    sending: string;
     types: {
       MENTION: string;
       ASSIGNMENT: string;
@@ -90,6 +168,70 @@ export type Translations = {
       DIRECT_MESSAGE: string;
       SYSTEM: string;
     };
+  };
+  field: {
+    title: string;
+    create: string;
+    name: string;
+    fieldType: string;
+    options: string;
+    optionsHint: string;
+    value: string;
+    noFields: string;
+    creating: string;
+    TEXT: string;
+    NUMBER: string;
+    DATE: string;
+    DROPDOWN: string;
+    MULTI_SELECT: string;
+    CHECKBOX: string;
+  };
+  webhook: {
+    title: string;
+    create: string;
+    edit: string;
+    deleteConfirm: string;
+    url: string;
+    events: string;
+    secret: string;
+    active: string;
+    inactive: string;
+    test: string;
+    testing: string;
+    testSuccess: string;
+    creating: string;
+    updating: string;
+  };
+  server: {
+    title: string;
+    members: string;
+    invite: string;
+    status: string;
+    role: string;
+    removeConfirm: string;
+    inviting: string;
+  };
+  reminder: {
+    title: string;
+    create: string;
+    reminderTitle: string;
+    remindAt: string;
+    repeatType: string;
+    noReminders: string;
+    creating: string;
+    cancelConfirm: string;
+    NONE: string;
+    DAILY: string;
+    WEEKLY: string;
+    MONTHLY: string;
+    PENDING: string;
+    SENT: string;
+    CANCELLED: string;
+  };
+  settings: {
+    title: string;
+    webhooks: string;
+    serverAdmin: string;
   };
   report: {
     title: string;
@@ -109,6 +251,15 @@ export type Translations = {
     issues: string;
     noDailyReports: string;
     reportDate: string;
+    create: string;
+    edit: string;
+    deleteConfirm: string;
+    projectId: string;
+    creating: string;
+    updating: string;
+    preview: string;
+    itemPlaceholder: string;
+    addItem: string;
   };
   common: {
     loading: string;
@@ -123,6 +274,12 @@ export type Translations = {
     updatedAt: string;
     dueAt: string;
     language: string;
+    save: string;
+    cancel: string;
+    create: string;
+    delete: string;
+    confirm: string;
+    saving: string;
   };
   importance: {
     LOW: string;
@@ -154,6 +311,12 @@ export type Translations = {
     HIGH: string;
     CRITICAL: string;
   };
+  memberRole: {
+    LEAD: string;
+    MEMBER: string;
+    REVIEWER: string;
+    STAKEHOLDER: string;
+  };
   auth: {
     signIn: string;
     signOut: string;
@@ -174,6 +337,7 @@ export const ja: Translations = {
     inbox: "受信トレイ",
     reports: "レポート",
     daily: "日報",
+    settings: "設定",
   },
   dashboard: {
     title: "コントロールサーフェス",
@@ -201,6 +365,18 @@ export const ja: Translations = {
     projects: "プロジェクト",
     members: "メンバー",
     created: "作成日",
+    create: "ワークスペースを作成",
+    edit: "ワークスペースを編集",
+    archive: "アーカイブ",
+    archiveConfirm: "このワークスペースをアーカイブしますか？",
+    name: "ワークスペース名",
+    slug: "スラッグ",
+    description: "説明",
+    nameRequired: "ワークスペース名は必須です",
+    slugRequired: "スラッグは必須です",
+    slugPattern: "小文字英数字とハイフンのみ使用できます",
+    creating: "作成中...",
+    updating: "更新中...",
   },
   project: {
     title: "プロジェクト",
@@ -214,6 +390,25 @@ export const ja: Translations = {
     startDate: "開始日",
     dueDate: "期限",
     noProjects: "プロジェクトがありません",
+    create: "プロジェクトを作成",
+    edit: "プロジェクトを編集",
+    archive: "アーカイブ",
+    archiveConfirm: "このプロジェクトをアーカイブしますか？",
+    name: "プロジェクト名",
+    key: "プロジェクトキー",
+    description: "説明",
+    nameRequired: "プロジェクト名は必須です",
+    keyRequired: "プロジェクトキーは必須です",
+    keyPattern: "大文字英数字のみ使用できます（例: PROJ）",
+    creating: "作成中...",
+    updating: "更新中...",
+    addMember: "メンバーを追加",
+    removeMember: "メンバーを削除",
+    removeMemberConfirm: "このメンバーを削除しますか？",
+    role: "ロール",
+    memberTitle: "メンバー名",
+    userId: "ユーザーID",
+    userIdRequired: "ユーザーIDは必須です",
   },
   task: {
     title: "タスク",
@@ -235,6 +430,15 @@ export const ja: Translations = {
     completed: "完了",
     missed: "未達",
     noMilestones: "マイルストーンがありません",
+    create: "マイルストーンを作成",
+    edit: "マイルストーンを編集",
+    deleteConfirm: "このマイルストーンを削除しますか？",
+    name: "マイルストーン名",
+    description: "説明",
+    dueAt: "期限",
+    status: "ステータス",
+    creating: "作成中...",
+    updating: "更新中...",
   },
   risk: {
     title: "リスク",
@@ -243,6 +447,38 @@ export const ja: Translations = {
     status: "ステータス",
     mitigation: "軽減策",
     noRisks: "リスクがありません",
+    create: "リスクを作成",
+    edit: "リスクを編集",
+    deleteConfirm: "このリスクを削除しますか？",
+    creating: "作成中...",
+    updating: "更新中...",
+  },
+  document: {
+    title: "ドキュメント",
+    create: "ドキュメントを作成",
+    edit: "ドキュメントを編集",
+    deleteConfirm: "このドキュメントを削除しますか？",
+    docTitle: "タイトル",
+    contentType: "コンテンツタイプ",
+    body: "本文（Markdown）",
+    parentDocument: "親ドキュメント",
+    none: "なし",
+    creating: "作成中...",
+    updating: "更新中...",
+  },
+  time: {
+    logTime: "作業時間を記録",
+    startTimer: "タイマー開始",
+    stopTimer: "タイマー停止",
+    timerRunning: "タイマー稼働中",
+    minutes: "分",
+    comment: "コメント",
+    category: "カテゴリ",
+    noCategory: "カテゴリなし",
+    createCategory: "カテゴリを作成",
+    categoryName: "カテゴリ名",
+    deleteConfirm: "この作業記録を削除しますか？",
+    logging: "記録中...",
   },
   inbox: {
     title: "受信トレイ",
@@ -250,6 +486,11 @@ export const ja: Translations = {
     all: "すべて",
     noMessages: "メッセージがありません",
     markAllRead: "すべて既読にする",
+    sendMessage: "メッセージを送信",
+    recipient: "宛先ユーザーID",
+    messageTitle: "タイトル",
+    messageBody: "本文（Markdown）",
+    sending: "送信中...",
     types: {
       MENTION: "メンション",
       ASSIGNMENT: "アサイン",
@@ -259,6 +500,70 @@ export const ja: Translations = {
       DIRECT_MESSAGE: "ダイレクトメッセージ",
       SYSTEM: "システム",
     },
+  },
+  field: {
+    title: "カスタムフィールド",
+    create: "フィールドを作成",
+    name: "フィールド名",
+    fieldType: "フィールドタイプ",
+    options: "選択肢",
+    optionsHint: "カンマ区切りで入力",
+    value: "値",
+    noFields: "カスタムフィールドがありません",
+    creating: "作成中...",
+    TEXT: "テキスト",
+    NUMBER: "数値",
+    DATE: "日付",
+    DROPDOWN: "ドロップダウン",
+    MULTI_SELECT: "複数選択",
+    CHECKBOX: "チェックボックス",
+  },
+  webhook: {
+    title: "Webhook",
+    create: "Webhookを作成",
+    edit: "Webhookを編集",
+    deleteConfirm: "このWebhookを削除しますか？",
+    url: "URL",
+    events: "イベント",
+    secret: "シークレット",
+    active: "有効",
+    inactive: "無効",
+    test: "テスト送信",
+    testing: "テスト中...",
+    testSuccess: "テスト送信が成功しました",
+    creating: "作成中...",
+    updating: "更新中...",
+  },
+  server: {
+    title: "サーバー管理",
+    members: "サーバーメンバー",
+    invite: "メンバーを招待",
+    status: "サーバーステータス",
+    role: "ロール",
+    removeConfirm: "このメンバーを削除しますか？",
+    inviting: "招待中...",
+  },
+  reminder: {
+    title: "リマインダー",
+    create: "リマインダーを作成",
+    reminderTitle: "タイトル",
+    remindAt: "通知日時",
+    repeatType: "繰り返し",
+    noReminders: "リマインダーがありません",
+    creating: "作成中...",
+    cancelConfirm: "このリマインダーをキャンセルしますか？",
+    NONE: "なし",
+    DAILY: "毎日",
+    WEEKLY: "毎週",
+    MONTHLY: "毎月",
+    PENDING: "待機中",
+    SENT: "送信済み",
+    CANCELLED: "キャンセル済み",
+  },
+  settings: {
+    title: "設定",
+    webhooks: "Webhook設定",
+    serverAdmin: "サーバー管理",
   },
   report: {
     title: "レポート",
@@ -278,6 +583,15 @@ export const ja: Translations = {
     issues: "課題",
     noDailyReports: "日報がありません",
     reportDate: "日付",
+    create: "日報を作成",
+    edit: "日報を編集",
+    deleteConfirm: "この日報を削除しますか？",
+    projectId: "プロジェクト",
+    creating: "作成中...",
+    updating: "更新中...",
+    preview: "プレビュー",
+    itemPlaceholder: "項目を入力",
+    addItem: "項目を追加",
   },
   common: {
     loading: "読み込み中...",
@@ -292,6 +606,12 @@ export const ja: Translations = {
     updatedAt: "更新日時",
     dueAt: "期限",
     language: "言語",
+    save: "保存",
+    cancel: "キャンセル",
+    create: "作成",
+    delete: "削除",
+    confirm: "確認",
+    saving: "保存中...",
   },
   importance: {
     LOW: "低",
@@ -322,6 +642,12 @@ export const ja: Translations = {
     MEDIUM: "中",
     HIGH: "高",
     CRITICAL: "致命的",
+  },
+  memberRole: {
+    LEAD: "リード",
+    MEMBER: "メンバー",
+    REVIEWER: "レビュアー",
+    STAKEHOLDER: "ステークホルダー",
   },
   auth: {
     signIn: "サインイン",

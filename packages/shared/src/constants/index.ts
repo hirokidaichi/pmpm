@@ -116,6 +116,14 @@ export type ReminderRepeatType = (typeof REMINDER_REPEAT_TYPES)[number];
 export const REMINDER_STATUSES = ["PENDING", "SENT", "CANCELLED"] as const;
 export type ReminderStatus = (typeof REMINDER_STATUSES)[number];
 
+// ── Buffer Types (CCPM) ──
+export const BUFFER_TYPES = ["PROJECT", "FEEDING"] as const;
+export type BufferType = (typeof BUFFER_TYPES)[number];
+
+// ── Buffer Statuses (CCPM) ──
+export const BUFFER_STATUSES = ["ACTIVE", "ARCHIVED"] as const;
+export type BufferStatus = (typeof BUFFER_STATUSES)[number];
+
 // ── CLI Exit Codes ──
 export const EXIT_CODES = {
   SUCCESS: 0,

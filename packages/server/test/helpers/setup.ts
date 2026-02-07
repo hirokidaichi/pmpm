@@ -136,6 +136,8 @@ CREATE TABLE IF NOT EXISTS pm_task (
   start_at INTEGER,
   due_at INTEGER,
   effort_minutes INTEGER,
+  optimistic_minutes INTEGER,
+  pessimistic_minutes INTEGER,
   story_points REAL,
   position INTEGER NOT NULL DEFAULT 0,
   created_by TEXT NOT NULL,
@@ -402,6 +404,24 @@ CREATE TABLE IF NOT EXISTS pm_dependency (
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_pm_dependency_tasks ON pm_dependency(predecessor_task_id, successor_task_id);
 
+-- Buffer (CCPM)
+CREATE TABLE IF NOT EXISTS pm_buffer (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL,
+  buffer_type TEXT NOT NULL CHECK (buffer_type IN ('PROJECT', 'FEEDING')),
+  name TEXT NOT NULL,
+  size_minutes INTEGER NOT NULL,
+  consumed_minutes INTEGER NOT NULL DEFAULT 0,
+  feeding_source_task_id TEXT,
+  chain_task_ids TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('ACTIVE', 'ARCHIVED')) DEFAULT 'ACTIVE',
+  created_by TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_pm_buffer_project ON pm_buffer(project_id, buffer_type);
+
 -- Inbox
 CREATE TABLE IF NOT EXISTS pm_inbox_message (
   id TEXT PRIMARY KEY,
@@ -492,6 +512,7 @@ export async function cleanupTestDb(
     "pm_status_history",
     "pm_webhook_delivery",
     "pm_inbox_message",
+    "pm_buffer",
     "pm_dependency",
     "pm_timer_state",
     "pm_time_entry",

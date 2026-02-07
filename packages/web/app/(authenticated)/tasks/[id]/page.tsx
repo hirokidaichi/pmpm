@@ -1,10 +1,14 @@
+import { notFound } from "next/navigation";
 import { ja } from "@/lib/i18n/ja";
-import { getTask, getComments, getTimeEntries, getTaskDependencies } from "@/lib/api/endpoints";
-import { TaskHeader } from "@/components/task/task-header";
-import { CommentList } from "@/components/task/comment-list";
-import { TimeEntries } from "@/components/task/time-entries";
-import { DependencyList } from "@/components/task/dependency-list";
-import { TaskSidebar } from "@/components/task/task-sidebar";
+import {
+  getTask,
+  getComments,
+  getTimeEntries,
+  getTaskDependencies,
+  getCurrentUser,
+} from "@/lib/api/endpoints";
+import { ApiError } from "@/lib/api/client";
+import { TaskDetailClient } from "@/components/task/task-detail-client";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
@@ -15,15 +19,40 @@ interface TaskDetailPageProps {
 export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
   const { id } = await params;
 
-  const [task, commentsRes, timeEntriesRes, dependencies] = await Promise.all([
-    getTask(id),
-    getComments(id).catch(() => ({ items: [], total: 0, limit: 50, offset: 0 })),
-    getTimeEntries({ taskId: id }).catch(() => ({ items: [], total: 0, limit: 50, offset: 0 })),
-    getTaskDependencies(id).catch(() => ({ predecessors: [], successors: [] })),
-  ]);
+  let task;
+  try {
+    task = await getTask(id);
+  } catch (e) {
+    if (e instanceof ApiError && (e.status === 404 || e.status === 500)) notFound();
+    throw e;
+  }
+
+  const [commentsRes, timeEntriesRes, dependencies, currentUser] =
+    await Promise.all([
+      getComments(id).catch(() => ({
+        items: [],
+        total: 0,
+        limit: 50,
+        offset: 0,
+      })),
+      getTimeEntries({ taskId: id }).catch(() => ({
+        items: [],
+        total: 0,
+        limit: 50,
+        offset: 0,
+      })),
+      getTaskDependencies(id).catch(() => ({
+        predecessors: [],
+        successors: [],
+      })),
+      getCurrentUser().catch(() => null),
+    ]);
 
   const comments = commentsRes.items;
   const timeEntries = timeEntriesRes.items;
+  const currentUserId = currentUser
+    ? ((currentUser as Record<string, unknown>).id as string | undefined)
+    : undefined;
 
   return (
     <main className="px-6 pb-20 pt-10">
@@ -36,25 +65,13 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
           {ja.common.back}
         </Link>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-          {/* Main content */}
-          <div className="flex flex-col gap-6">
-            <div className="glass-strong rounded-none p-6">
-              <TaskHeader task={task} />
-            </div>
-            <CommentList comments={comments} />
-            <TimeEntries entries={timeEntries} />
-            <DependencyList
-              predecessors={dependencies.predecessors}
-              successors={dependencies.successors}
-            />
-          </div>
-
-          {/* Sidebar */}
-          <div className="flex flex-col gap-6">
-            <TaskSidebar task={task} />
-          </div>
-        </div>
+        <TaskDetailClient
+          task={task}
+          comments={comments}
+          timeEntries={timeEntries}
+          dependencies={dependencies}
+          currentUserId={currentUserId}
+        />
       </div>
     </main>
   );

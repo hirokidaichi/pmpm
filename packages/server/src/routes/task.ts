@@ -15,6 +15,8 @@ const createTaskSchema = z.object({
   startAt: z.number().optional(),
   dueAt: z.number().optional(),
   effortMinutes: z.number().int().min(0).optional(),
+  optimisticMinutes: z.number().int().min(0).optional(),
+  pessimisticMinutes: z.number().int().min(0).optional(),
   storyPoints: z.number().min(0).optional(),
   position: z.number().int().optional(),
   assignees: z
@@ -35,6 +37,8 @@ const updateTaskSchema = z.object({
   startAt: z.number().nullable().optional(),
   dueAt: z.number().nullable().optional(),
   effortMinutes: z.number().int().min(0).nullable().optional(),
+  optimisticMinutes: z.number().int().min(0).nullable().optional(),
+  pessimisticMinutes: z.number().int().min(0).nullable().optional(),
   storyPoints: z.number().min(0).nullable().optional(),
   position: z.number().int().optional(),
   parentTaskId: z.string().nullable().optional(),

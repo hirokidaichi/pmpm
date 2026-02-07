@@ -10,6 +10,7 @@
     "packages/web"
   ],
   "scripts": {
+    "dev": "concurrently -n server,web -c blue,green \"npm run dev:server\" \"npm run dev:web\"",
     "dev:server": "npm run dev -w packages/server",
     "dev:cli": "npm run dev -w packages/cli",
     "dev:web": "npm run dev -w packages/web",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "concurrently": "^9.2.1",
     "eslint": "^9.0.0",
     "prettier": "^3.4.0",
     "tsx": "^4.19.0",

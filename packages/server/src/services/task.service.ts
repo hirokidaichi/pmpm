@@ -16,6 +16,8 @@ export interface CreateTaskInput {
   startAt?: number;
   dueAt?: number;
   effortMinutes?: number;
+  optimisticMinutes?: number;
+  pessimisticMinutes?: number;
   storyPoints?: number;
   position?: number;
   assignees?: Array<{ userId: string; role?: "ASSIGNEE" | "REVIEWER" }>;
@@ -29,6 +31,8 @@ export interface UpdateTaskInput {
   startAt?: number | null;
   dueAt?: number | null;
   effortMinutes?: number | null;
+  optimisticMinutes?: number | null;
+  pessimisticMinutes?: number | null;
   storyPoints?: number | null;
   position?: number;
   parentTaskId?: string | null;
@@ -66,6 +70,8 @@ export const taskService = {
       startAt: input.startAt,
       dueAt: input.dueAt,
       effortMinutes: input.effortMinutes,
+      optimisticMinutes: input.optimisticMinutes,
+      pessimisticMinutes: input.pessimisticMinutes,
       storyPoints: input.storyPoints,
       position: input.position ?? 0,
       createdBy: userId,
