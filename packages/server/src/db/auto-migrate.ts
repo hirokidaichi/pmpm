@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS session (
   expires_at INTEGER NOT NULL,
   token TEXT NOT NULL UNIQUE,
   created_at INTEGER NOT NULL DEFAULT (cast(unixepoch('subsecond') * 1000 as integer)),
-  updated_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL DEFAULT (cast(unixepoch('subsecond') * 1000 as integer)),
   ip_address TEXT,
   user_agent TEXT,
   user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS account (
   scope TEXT,
   password TEXT,
   created_at INTEGER NOT NULL DEFAULT (cast(unixepoch('subsecond') * 1000 as integer)),
-  updated_at INTEGER NOT NULL
+  updated_at INTEGER NOT NULL DEFAULT (cast(unixepoch('subsecond') * 1000 as integer))
 );
 CREATE INDEX IF NOT EXISTS account_userId_idx ON account(user_id);
 
@@ -190,6 +190,7 @@ CREATE TABLE IF NOT EXISTS pm_project_member (
   FOREIGN KEY (project_id) REFERENCES pm_project(id)
 );
 CREATE INDEX IF NOT EXISTS idx_pm_project_member_user ON pm_project_member(user_id);
+CREATE INDEX IF NOT EXISTS idx_pm_project_member_project ON pm_project_member(project_id);
 
 CREATE TABLE IF NOT EXISTS pm_task (
   id TEXT PRIMARY KEY,
@@ -286,6 +287,7 @@ CREATE TABLE IF NOT EXISTS pm_custom_field_value (
   FOREIGN KEY (field_id) REFERENCES pm_custom_field(id),
   FOREIGN KEY (task_id) REFERENCES pm_task(id)
 );
+CREATE INDEX IF NOT EXISTS idx_pm_custom_field_value_task ON pm_custom_field_value(task_id);
 
 CREATE TABLE IF NOT EXISTS pm_custom_field_value_multi (
   field_id TEXT NOT NULL,
@@ -363,6 +365,7 @@ CREATE TABLE IF NOT EXISTS pm_dependency (
   FOREIGN KEY (predecessor_task_id) REFERENCES pm_task(id),
   FOREIGN KEY (successor_task_id) REFERENCES pm_task(id)
 );
+CREATE INDEX IF NOT EXISTS idx_pm_dependency_successor ON pm_dependency(successor_task_id);
 
 CREATE TABLE IF NOT EXISTS pm_webhook (
   id TEXT PRIMARY KEY,
@@ -523,14 +526,20 @@ CREATE TABLE IF NOT EXISTS pm_buffer (
   id TEXT PRIMARY KEY,
   project_id TEXT NOT NULL,
   buffer_type TEXT NOT NULL CHECK (buffer_type IN ('PROJECT', 'FEEDING')),
-  planned_days REAL NOT NULL,
-  consumed_days REAL NOT NULL DEFAULT 0,
-  feeding_path_task_id TEXT,
+  name TEXT NOT NULL,
+  size_minutes INTEGER NOT NULL,
+  consumed_minutes INTEGER NOT NULL DEFAULT 0,
+  feeding_source_task_id TEXT,
+  chain_task_ids TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('ACTIVE', 'ARCHIVED')) DEFAULT 'ACTIVE',
+  created_by TEXT NOT NULL,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
-  FOREIGN KEY (project_id) REFERENCES pm_project(id)
+  FOREIGN KEY (project_id) REFERENCES pm_project(id),
+  FOREIGN KEY (feeding_source_task_id) REFERENCES pm_task(id)
 );
-CREATE INDEX IF NOT EXISTS idx_pm_buffer_project ON pm_buffer(project_id);
+CREATE INDEX IF NOT EXISTS idx_pm_buffer_project ON pm_buffer(project_id, buffer_type);
+CREATE INDEX IF NOT EXISTS idx_pm_buffer_feeding_source ON pm_buffer(feeding_source_task_id);
 `;
 
 export async function autoMigrate(): Promise<void> {

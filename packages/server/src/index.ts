@@ -26,6 +26,7 @@ import { riskRoutes } from "./routes/risk.js";
 import { reminderRoutes } from "./routes/reminder.js";
 import { dailyRoutes } from "./routes/daily.js";
 import { ccpmRoutes } from "./routes/ccpm.js";
+import { workflowRoutes } from "./routes/workflow.js";
 import { setupRoutes } from "./routes/setup.js";
 import { startScheduler } from "./scheduler.js";
 import { autoMigrate } from "./db/auto-migrate.js";
@@ -50,6 +51,9 @@ app.use("/api/*", async (c, next) => {
   });
   c.set("user", session?.user ?? null);
   c.set("membership", null);
+  c.set("workspaceRole", null);
+  c.set("projectRole", null);
+  c.set("effectivePermission", "none");
   await next();
 });
 
@@ -77,6 +81,7 @@ app.route("/api/risks", riskRoutes);
 app.route("/api/reminders", reminderRoutes);
 app.route("/api/daily-reports", dailyRoutes);
 app.route("/api/ccpm", ccpmRoutes);
+app.route("/api/workflows", workflowRoutes);
 app.route("/api/setup", setupRoutes);
 
 // --- Export types for Hono RPC ---

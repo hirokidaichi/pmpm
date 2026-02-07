@@ -69,7 +69,8 @@ export const dailyService = {
         .set(updateData)
         .where(eq(pmDailyReport.id, existing.id));
 
-      return this.getById(existing.id);
+      const report = await this.getById(existing.id);
+      return { ...report, isNew: false as const };
     }
 
     const id = ulid();
@@ -96,7 +97,8 @@ export const dailyService = {
       payload: { reportDate: input.reportDate, projectId: input.projectId },
     });
 
-    return this.getById(id);
+    const report = await this.getById(id);
+    return { ...report, isNew: true as const };
   },
 
   async getById(id: string) {

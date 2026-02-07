@@ -1,7 +1,7 @@
 import { eq, and, isNull, desc, asc, like, sql, inArray } from "drizzle-orm";
 import { ulid } from "ulid";
 import { db } from "../db/client.js";
-import { pmTask, pmTaskAssignee, pmStatusHistory } from "../db/schema.js";
+import { pmTask, pmTaskAssignee, pmStatusHistory, pmProject, pmWorkspace, pmWorkflowStage } from "../db/schema.js";
 import { AppError } from "../middleware/errorHandler.js";
 import { eventService } from "./event.service.js";
 import { inboxService } from "./inbox.service.js";
@@ -56,6 +56,24 @@ const now = () => Date.now();
 
 export const taskService = {
   async create(input: CreateTaskInput, userId: string) {
+    // Validate project exists and is not archived
+    const project = await db.query.pmProject.findFirst({
+      where: eq(pmProject.id, input.projectId),
+    });
+    if (!project) {
+      throw new AppError("PROJECT_NOT_FOUND", `Project '${input.projectId}' not found`, 404);
+    }
+    if (project.archivedAt) {
+      throw new AppError("PROJECT_ARCHIVED", "Cannot create tasks in an archived project", 400);
+    }
+    // Also check workspace is not archived
+    const workspace = await db.query.pmWorkspace.findFirst({
+      where: eq(pmWorkspace.id, project.workspaceId),
+    });
+    if (workspace?.archivedAt) {
+      throw new AppError("WORKSPACE_ARCHIVED", "Cannot create tasks in an archived workspace", 400);
+    }
+
     const id = ulid();
     const timestamp = now();
 
@@ -161,7 +179,7 @@ export const taskService = {
       updated_at: pmTask.updatedAt,
       position: pmTask.position,
       due_at: pmTask.dueAt,
-      importance: pmTask.importance,
+      importance: sql`CASE ${pmTask.importance} WHEN 'CRITICAL' THEN 4 WHEN 'HIGH' THEN 3 WHEN 'NORMAL' THEN 2 WHEN 'LOW' THEN 1 ELSE 0 END`,
     } as const;
     type SortKey = keyof typeof sortMapping;
     const sortKey = (query.sort ?? "position") as SortKey;
@@ -189,6 +207,16 @@ export const taskService = {
 
   async update(id: string, input: UpdateTaskInput, userId?: string) {
     const task = await this.getById(id);
+
+    // Validate stageId exists if being set
+    if (input.stageId !== undefined && input.stageId !== null) {
+      const stage = await db.query.pmWorkflowStage.findFirst({
+        where: eq(pmWorkflowStage.id, input.stageId),
+      });
+      if (!stage) {
+        throw new AppError("STAGE_NOT_FOUND", `Stage '${input.stageId}' not found`, 404);
+      }
+    }
 
     const updateData: Record<string, unknown> = { updatedAt: now() };
     for (const [key, value] of Object.entries(input)) {

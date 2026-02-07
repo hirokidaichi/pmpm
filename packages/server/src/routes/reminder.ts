@@ -11,10 +11,14 @@ const createSchema = z.object({
   bodyMd: z.string().max(10000).optional(),
   refEntityType: z.string().max(50).optional(),
   refEntityId: z.string().max(100).optional(),
+  taskId: z.string().optional(),
   remindAt: z.number().int(),
   repeatType: z.enum(["NONE", "DAILY", "WEEKLY", "MONTHLY"]).optional(),
   repeatEndAt: z.number().int().optional(),
-});
+}).refine(
+  (data) => data.remindAt > Date.now() - 60000,
+  { message: "remindAt must be in the future", path: ["remindAt"] }
+);
 
 const updateSchema = z.object({
   title: z.string().min(1).max(500).optional(),
@@ -62,8 +66,14 @@ export const reminderRoutes = new Hono<AppEnv>()
     requireRole("MEMBER"),
     zValidator("json", createSchema),
     async (c) => {
-      const input = c.req.valid("json");
+      const validatedInput = c.req.valid("json");
       const user = c.get("user")!;
+      // Map taskId convenience field to refEntityType/refEntityId
+      const input = {
+        ...validatedInput,
+        refEntityType: validatedInput.refEntityType ?? (validatedInput.taskId ? "TASK" : undefined),
+        refEntityId: validatedInput.refEntityId ?? validatedInput.taskId,
+      };
       const reminder = await reminderService.create(input, user.id);
       return c.json(reminder, 201);
     },

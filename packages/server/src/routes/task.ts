@@ -3,6 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import type { AppEnv } from "../types.js";
 import { requireRole } from "../middleware/roleGuard.js";
+import { resolveProject, requirePermission } from "../middleware/accessControl.js";
 import { taskService } from "../services/task.service.js";
 
 const createTaskSchema = z.object({
@@ -27,7 +28,15 @@ const createTaskSchema = z.object({
       }),
     )
     .optional(),
-});
+}).refine(
+  (data) => {
+    if (data.optimisticMinutes != null && data.pessimisticMinutes != null) {
+      return data.optimisticMinutes <= data.pessimisticMinutes;
+    }
+    return true;
+  },
+  { message: "optimisticMinutes must be <= pessimisticMinutes", path: ["optimisticMinutes"] }
+);
 
 const updateTaskSchema = z.object({
   title: z.string().min(1).max(500).optional(),
@@ -42,7 +51,15 @@ const updateTaskSchema = z.object({
   storyPoints: z.number().min(0).nullable().optional(),
   position: z.number().int().optional(),
   parentTaskId: z.string().nullable().optional(),
-});
+}).refine(
+  (data) => {
+    if (data.optimisticMinutes != null && data.pessimisticMinutes != null) {
+      return data.optimisticMinutes <= data.pessimisticMinutes;
+    }
+    return true;
+  },
+  { message: "optimisticMinutes must be <= pessimisticMinutes", path: ["optimisticMinutes"] }
+);
 
 const listTasksSchema = z.object({
   projectId: z.string().optional(),
@@ -68,6 +85,8 @@ export const taskRoutes = new Hono<AppEnv>()
     "/",
     requireRole("STAKEHOLDER"),
     zValidator("query", listTasksSchema),
+    resolveProject({ from: "query", key: "projectId" }),
+    requirePermission("read"),
     async (c) => {
       const query = c.req.valid("query");
       const result = await taskService.list(query);
@@ -77,6 +96,8 @@ export const taskRoutes = new Hono<AppEnv>()
   .get(
     "/:id",
     requireRole("STAKEHOLDER"),
+    resolveProject({ from: "task", paramKey: "id" }),
+    requirePermission("read"),
     async (c) => {
       const task = await taskService.getById(c.req.param("id"));
       return c.json(task);
@@ -86,6 +107,8 @@ export const taskRoutes = new Hono<AppEnv>()
     "/",
     requireRole("MEMBER"),
     zValidator("json", createTaskSchema),
+    resolveProject({ from: "body", key: "projectId" }),
+    requirePermission("write"),
     async (c) => {
       const input = c.req.valid("json");
       const user = c.get("user")!;
@@ -96,6 +119,8 @@ export const taskRoutes = new Hono<AppEnv>()
   .put(
     "/:id",
     requireRole("MEMBER"),
+    resolveProject({ from: "task", paramKey: "id" }),
+    requirePermission("write"),
     zValidator("json", updateTaskSchema),
     async (c) => {
       const input = c.req.valid("json");
@@ -106,6 +131,8 @@ export const taskRoutes = new Hono<AppEnv>()
   .delete(
     "/:id",
     requireRole("MEMBER"),
+    resolveProject({ from: "task", paramKey: "id" }),
+    requirePermission("write"),
     async (c) => {
       await taskService.softDelete(c.req.param("id"));
       return c.json({ success: true });
@@ -114,6 +141,8 @@ export const taskRoutes = new Hono<AppEnv>()
   .post(
     "/:id/assignees",
     requireRole("MEMBER"),
+    resolveProject({ from: "task", paramKey: "id" }),
+    requirePermission("write"),
     zValidator("json", assigneeSchema),
     async (c) => {
       const { userId, role } = c.req.valid("json");
@@ -124,6 +153,8 @@ export const taskRoutes = new Hono<AppEnv>()
   .delete(
     "/:id/assignees/:userId",
     requireRole("MEMBER"),
+    resolveProject({ from: "task", paramKey: "id" }),
+    requirePermission("write"),
     async (c) => {
       const task = await taskService.removeAssignee(
         c.req.param("id"),

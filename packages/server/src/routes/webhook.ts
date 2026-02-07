@@ -40,6 +40,8 @@ export const webhookRoutes = new Hono<AppEnv>()
       return c.json(
         webhooks.map((w) => ({
           ...w,
+          secret: w.secret ? "****" : null,
+          isActive: w.isActive === 1,
           events: JSON.parse(w.eventsJson) as string[],
         })),
       );
@@ -68,7 +70,12 @@ export const webhookRoutes = new Hono<AppEnv>()
 
       const webhook = await db.query.pmWebhook.findFirst({ where: eq(pmWebhook.id, id) });
       return c.json(
-        { ...webhook!, events: input.events },
+        {
+          ...webhook!,
+          secret: webhook!.secret ? "****" : null,
+          isActive: webhook!.isActive === 1,
+          events: input.events,
+        },
         201,
       );
     },
@@ -99,6 +106,8 @@ export const webhookRoutes = new Hono<AppEnv>()
       const updated = await db.query.pmWebhook.findFirst({ where: eq(pmWebhook.id, webhookId) });
       return c.json({
         ...updated!,
+        secret: updated!.secret ? "****" : null,
+        isActive: updated!.isActive === 1,
         events: JSON.parse(updated!.eventsJson) as string[],
       });
     },

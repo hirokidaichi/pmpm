@@ -2,7 +2,7 @@ import { Command } from "commander";
 import { get, post, put, del, extractClientOpts, type ClientOptions } from "../client/index.js";
 import { resolveWorkspaceAndProject } from "../client/resolver.js";
 import { loadConfig } from "../config/index.js";
-import { printOutput, printSuccess, printError } from "../output/formatter.js";
+import { printOutput, extractFormatOpts, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
 
 async function resolveProjectIds(opts: Record<string, unknown>, clientOpts: ClientOptions): Promise<{
@@ -73,7 +73,7 @@ Examples:
       }
       try {
         const result = await post("/api/tasks", body, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to create task");
@@ -125,7 +125,20 @@ Examples:
       query.offset = localOpts.offset;
       try {
         const result = await get("/api/tasks", { ...clientOpts, query });
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        const data = result as Record<string, unknown>;
+        const items = Array.isArray(data.items) ? data.items : result;
+        const formatOpts = extractFormatOpts(opts);
+        if (formatOpts.format === "json") {
+          printOutput(result, formatOpts);
+        } else {
+          printOutput(items, formatOpts);
+          if (!formatOpts.quiet && Array.isArray(data.items)) {
+            const total = data.total ?? "?";
+            const offset = data.offset ?? 0;
+            const count = (data.items as unknown[]).length;
+            console.log(`\nShowing ${offset as number + 1}-${offset as number + count} of ${total} tasks`);
+          }
+        }
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to list tasks");
@@ -150,7 +163,7 @@ Examples:
       const clientOpts = extractClientOpts(opts);
       try {
         const result = await get(`/api/tasks/${id}`, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Task not found");
@@ -194,7 +207,7 @@ Examples:
       if (localOpts.pessimistic) body.pessimisticMinutes = parseInt(localOpts.pessimistic, 10);
       try {
         const result = await put(`/api/tasks/${id}`, body, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to edit task");
@@ -251,7 +264,7 @@ Examples:
           { userId: localOpts.user, role: localOpts.role },
           clientOpts
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to assign user");
@@ -281,7 +294,7 @@ Examples:
         );
         printSuccess(`User '${localOpts.user}' removed from task ${id}.`);
         if (result) {
-          printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+          printOutput(result, extractFormatOpts(opts));
         }
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
@@ -312,7 +325,7 @@ Examples:
           { parentTaskId: localOpts.parent === "root" ? null : localOpts.parent },
           clientOpts
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to move task");
@@ -341,7 +354,7 @@ Examples:
           { afterId: localOpts.after },
           clientOpts
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to reorder task");
@@ -380,7 +393,7 @@ Examples:
           `/api/tasks`,
           { ...clientOpts, query: queryParams }
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Search failed");
@@ -414,7 +427,7 @@ Examples:
           { projectId, filter: localOpts.filter, set: localOpts.set },
           clientOpts
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Bulk update failed");
@@ -446,7 +459,7 @@ Examples:
           { projectId, format: "csv", data: csvContent },
           clientOpts
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Import failed");
@@ -480,7 +493,7 @@ Examples:
         if (typeof result === "string") {
           console.log(result);
         } else {
-          printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+          printOutput(result, extractFormatOpts(opts));
         }
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };

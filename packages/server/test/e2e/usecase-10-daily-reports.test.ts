@@ -105,6 +105,16 @@ describe("Usecase 10: Daily Report Workflow", () => {
       expect(status).toBe(201);
       expect(body.name).toBe("Daily Report Workspace");
       workspaceId = body.id;
+      // Add Bob and Charlie to workspace for RBAC
+      const now = Date.now();
+      await ctx.client.execute({
+        sql: `INSERT INTO pm_workspace_member (workspace_id, user_id, role, created_at) VALUES (?, ?, ?, ?)`,
+        args: [workspaceId, bobId, "MEMBER", now],
+      });
+      await ctx.client.execute({
+        sql: `INSERT INTO pm_workspace_member (workspace_id, user_id, role, created_at) VALUES (?, ?, ?, ?)`,
+        args: [workspaceId, charlieId, "MEMBER", now],
+      });
     });
 
     it("creates Project A", async () => {
@@ -118,6 +128,16 @@ describe("Usecase 10: Daily Report Workflow", () => {
       expect(body.name).toBe("Project Alpha");
       expect(body.key).toBe("PA");
       projectAId = body.id;
+      // Add Bob and Charlie to Project A for RBAC
+      const now = Date.now();
+      await ctx.client.execute({
+        sql: `INSERT INTO pm_project_member (project_id, user_id, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+        args: [projectAId, bobId, "MEMBER", now, now],
+      });
+      await ctx.client.execute({
+        sql: `INSERT INTO pm_project_member (project_id, user_id, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+        args: [projectAId, charlieId, "MEMBER", now, now],
+      });
     });
 
     it("creates Project B", async () => {
@@ -131,6 +151,16 @@ describe("Usecase 10: Daily Report Workflow", () => {
       expect(body.name).toBe("Project Beta");
       expect(body.key).toBe("PB");
       projectBId = body.id;
+      // Add Bob and Charlie to Project B for RBAC
+      const now = Date.now();
+      await ctx.client.execute({
+        sql: `INSERT INTO pm_project_member (project_id, user_id, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+        args: [projectBId, bobId, "MEMBER", now, now],
+      });
+      await ctx.client.execute({
+        sql: `INSERT INTO pm_project_member (project_id, user_id, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+        args: [projectBId, charlieId, "MEMBER", now, now],
+      });
     });
   });
 
@@ -212,8 +242,8 @@ describe("Usecase 10: Daily Report Workflow", () => {
         },
         bobId,
       );
-      // Upsert returns 201 but reuses the same report ID
-      expect(status).toBe(201);
+      // Upsert returns 200 (update of existing report)
+      expect(status).toBe(200);
       expect(body.id).toBe(bobReportA_Feb06);
       expect(body.achievements).toBe("Completed API integration (updated)");
       // Fields not provided in the upsert remain unchanged

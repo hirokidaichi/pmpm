@@ -3,6 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import type { AppEnv } from "../types.js";
 import { requireRole } from "../middleware/roleGuard.js";
+import { resolveProject, requirePermission } from "../middleware/accessControl.js";
 import { dailyService } from "../services/daily.service.js";
 
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
@@ -44,6 +45,8 @@ export const dailyRoutes = new Hono<AppEnv>()
     "/preview",
     requireRole("STAKEHOLDER"),
     zValidator("query", previewSchema),
+    resolveProject({ from: "query", key: "projectId" }),
+    requirePermission("read", { skipIfNoContext: true }),
     async (c) => {
       const user = c.get("user")!;
       const query = c.req.valid("query");
@@ -77,11 +80,14 @@ export const dailyRoutes = new Hono<AppEnv>()
     "/",
     requireRole("MEMBER"),
     zValidator("json", createSchema),
+    resolveProject({ from: "body", key: "projectId" }),
+    requirePermission("write", { skipIfNoContext: true }),
     async (c) => {
       const input = c.req.valid("json");
       const user = c.get("user")!;
-      const report = await dailyService.create(input, user.id);
-      return c.json(report, 201);
+      const result = await dailyService.create(input, user.id);
+      const { isNew, ...report } = result;
+      return c.json(report, isNew ? 201 : 200);
     },
   )
   .patch(

@@ -504,7 +504,7 @@ describe("Usecase 8: Full Project Lifecycle", () => {
       );
       expect(status).toBe(200);
       expect(body.id).toBe(projectId);
-      expect(body.status).toBe("COMPLETED");
+      expect(body.status).toBe("CANCELLED");
       expect(body.archivedAt).toBeGreaterThan(0);
     });
   });

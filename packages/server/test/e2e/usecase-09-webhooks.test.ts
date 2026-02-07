@@ -114,7 +114,7 @@ describe("Usecase 9: Webhook Administration & Delivery Tracking", () => {
       expect(body.id).toBeDefined();
       expect(body.name).toBe("Slack Integration");
       expect(body.url).toBe("https://hooks.slack.example.com/services/T00/B00/xxxx");
-      expect(body.secret).toBe("whsec_slack_secret_123");
+      expect(body.secret).toBe("****");
       expect(body.events).toEqual(["task.created", "task.updated", "comment.created"]);
       webhook1Id = body.id;
     });
@@ -191,8 +191,7 @@ describe("Usecase 9: Webhook Administration & Delivery Tracking", () => {
         aliceId,
       );
       expect(status).toBe(200);
-      // isActive is stored as 0/1 integer in SQLite
-      expect(body.isActive === false || body.isActive === 0).toBe(true);
+      expect(body.isActive).toBe(false);
     });
   });
 

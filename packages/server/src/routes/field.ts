@@ -5,6 +5,7 @@ import { eq, and, asc } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { AppEnv } from "../types.js";
 import { requireRole } from "../middleware/roleGuard.js";
+import { resolveProject, requirePermission } from "../middleware/accessControl.js";
 import { db } from "../db/client.js";
 import {
   pmCustomField,
@@ -25,6 +26,7 @@ const createFieldSchema = z.object({
   options: z
     .array(
       z.object({
+        label: z.string().min(1).optional(),
         value: z.string().min(1),
         color: z.string().max(7).optional(),
       }),
@@ -59,11 +61,21 @@ const unsetValueSchema = z.object({
   taskId: z.string().min(1),
 });
 
+// Helper to add label to options in responses
+function addOptionLabels(field: Record<string, unknown> & { options?: Array<Record<string, unknown>> }) {
+  return {
+    ...field,
+    options: field.options?.map((opt) => ({ ...opt, label: opt.value })) ?? [],
+  };
+}
+
 export const fieldRoutes = new Hono<AppEnv>()
   .get(
     "/",
     requireRole("STAKEHOLDER"),
     zValidator("query", listFieldsSchema),
+    resolveProject({ from: "query", key: "projectId" }),
+    requirePermission("read", { skipIfNoContext: true }),
     async (c) => {
       const query = c.req.valid("query");
       const conditions = [];
@@ -76,13 +88,15 @@ export const fieldRoutes = new Hono<AppEnv>()
         where,
         with: { options: { orderBy: [asc(pmCustomFieldOption.position)] } },
       });
-      return c.json(fields);
+      return c.json(fields.map(addOptionLabels));
     },
   )
   .post(
     "/",
     requireRole("MEMBER"),
     zValidator("json", createFieldSchema),
+    resolveProject({ from: "body", key: "projectId" }),
+    requirePermission("write", { skipIfNoContext: true }),
     async (c) => {
       const input = c.req.valid("json");
       const user = c.get("user")!;
@@ -113,13 +127,11 @@ export const fieldRoutes = new Hono<AppEnv>()
         );
       }
 
-      return c.json(
-        await db.query.pmCustomField.findFirst({
-          where: eq(pmCustomField.id, id),
-          with: { options: true },
-        }),
-        201,
-      );
+      const created = await db.query.pmCustomField.findFirst({
+        where: eq(pmCustomField.id, id),
+        with: { options: true },
+      });
+      return c.json(created ? addOptionLabels(created) : created, 201);
     },
   )
   .put(
@@ -143,12 +155,11 @@ export const fieldRoutes = new Hono<AppEnv>()
       if (input.isRequired !== undefined) updateData.isRequired = input.isRequired ? 1 : 0;
 
       await db.update(pmCustomField).set(updateData).where(eq(pmCustomField.id, fieldId));
-      return c.json(
-        await db.query.pmCustomField.findFirst({
-          where: eq(pmCustomField.id, fieldId),
-          with: { options: true },
-        }),
-      );
+      const updated = await db.query.pmCustomField.findFirst({
+        where: eq(pmCustomField.id, fieldId),
+        with: { options: true },
+      });
+      return c.json(updated ? addOptionLabels(updated) : updated);
     },
   )
   .post(

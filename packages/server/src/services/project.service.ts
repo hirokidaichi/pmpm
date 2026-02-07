@@ -1,7 +1,7 @@
 import { eq, and, isNull, desc, asc, like, sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import { db } from "../db/client.js";
-import { pmProject, pmProjectMember } from "../db/schema.js";
+import { pmProject, pmProjectMember, pmWorkspace } from "../db/schema.js";
 import { AppError } from "../middleware/errorHandler.js";
 import { eventService } from "./event.service.js";
 
@@ -49,6 +49,17 @@ const now = () => Date.now();
 
 export const projectService = {
   async create(input: CreateProjectInput, userId: string) {
+    // Validate workspace exists and is not archived
+    const workspace = await db.query.pmWorkspace.findFirst({
+      where: eq(pmWorkspace.id, input.workspaceId),
+    });
+    if (!workspace) {
+      throw new AppError("WORKSPACE_NOT_FOUND", `Workspace '${input.workspaceId}' not found`, 404);
+    }
+    if (workspace.archivedAt) {
+      throw new AppError("WORKSPACE_ARCHIVED", "Cannot create projects in an archived workspace", 400);
+    }
+
     const existing = await db.query.pmProject.findFirst({
       where: and(
         eq(pmProject.workspaceId, input.workspaceId),
@@ -148,6 +159,50 @@ export const projectService = {
     };
   },
 
+  async listForUser(query: ListProjectsQuery, userId: string) {
+    const conditions = [];
+    if (query.workspaceId) {
+      conditions.push(eq(pmProject.workspaceId, query.workspaceId));
+    }
+    if (query.status) {
+      conditions.push(eq(pmProject.status, query.status as "ACTIVE"));
+    }
+    if (!query.includeArchived) {
+      conditions.push(isNull(pmProject.archivedAt));
+    }
+    if (query.search) {
+      conditions.push(like(pmProject.name, `%${query.search}%`));
+    }
+    // Only projects where user is workspace member or project member
+    conditions.push(
+      sql`(
+        ${pmProject.workspaceId} IN (SELECT workspace_id FROM pm_workspace_member WHERE user_id = ${userId})
+        OR ${pmProject.id} IN (SELECT project_id FROM pm_project_member WHERE user_id = ${userId})
+      )`,
+    );
+
+    const where = and(...conditions);
+    const limit = query.limit ?? 50;
+    const offset = query.offset ?? 0;
+
+    const sortCol = query.sort === "name" ? pmProject.name
+      : query.sort === "updated_at" ? pmProject.updatedAt
+      : pmProject.createdAt;
+    const orderFn = query.order === "desc" ? desc : asc;
+
+    const [items, countResult] = await Promise.all([
+      db.select().from(pmProject).where(where).orderBy(orderFn(sortCol)).limit(limit).offset(offset),
+      db.select({ count: sql<number>`count(*)` }).from(pmProject).where(where),
+    ]);
+
+    return {
+      items,
+      total: countResult[0]?.count ?? 0,
+      limit,
+      offset,
+    };
+  },
+
   async update(id: string, input: UpdateProjectInput) {
     const project = await this.getById(id);
 
@@ -187,7 +242,7 @@ export const projectService = {
     await this.getById(id);
     await db
       .update(pmProject)
-      .set({ archivedAt: now(), updatedAt: now() })
+      .set({ archivedAt: now(), updatedAt: now(), status: "CANCELLED" })
       .where(eq(pmProject.id, id));
 
     // Emit event
