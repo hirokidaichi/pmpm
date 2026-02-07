@@ -20,11 +20,12 @@ export function useWebhooks(params?: { limit?: number }) {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api.get<Paginated<Webhook>>(
+      const data = await api.get<Webhook[] | Paginated<Webhook>>(
         `/api/webhooks${buildQuery({ limit: params?.limit ?? 50 })}`,
       );
-      setWebhooks(data.items);
-      setTotal(data.total);
+      const items = Array.isArray(data) ? data : data.items;
+      setWebhooks(items);
+      setTotal(Array.isArray(data) ? items.length : data.total);
     } catch {
       // silently handle
     } finally {

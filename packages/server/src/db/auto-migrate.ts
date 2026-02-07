@@ -129,6 +129,7 @@ CREATE TABLE IF NOT EXISTS pm_workspace (
 CREATE TABLE IF NOT EXISTS pm_workspace_member (
   workspace_id TEXT NOT NULL,
   user_id TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'MEMBER',
   created_at INTEGER NOT NULL,
   PRIMARY KEY (workspace_id, user_id),
   FOREIGN KEY (workspace_id) REFERENCES pm_workspace(id)

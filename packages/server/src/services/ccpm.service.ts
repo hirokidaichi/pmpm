@@ -1,6 +1,6 @@
 import { eq, and, isNull } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { pmTask, pmDependency, pmTaskAssignee, pmProject } from "../db/schema.js";
+import { pmTask, pmProject } from "../db/schema.js";
 import { AppError } from "../middleware/errorHandler.js";
 import type {
   CriticalChainResult,
@@ -585,7 +585,6 @@ export const ccpmService = {
         for (const dep of predecessorMap.get(id) ?? []) {
           const predES = earlyStart.get(dep.predecessorTaskId) ?? 0;
           const predEF = earlyFinish.get(dep.predecessorTaskId) ?? 0;
-          const predDur = sampled.get(dep.predecessorTaskId) ?? 0;
 
           switch (dep.depType) {
             case "FS":

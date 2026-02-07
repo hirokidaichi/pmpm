@@ -1,4 +1,4 @@
-import { eq, and, asc } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import { ulid } from "ulid";
 import { db } from "../db/client.js";
 import { pmWorkflow, pmWorkflowStage, pmProject } from "../db/schema.js";
@@ -32,7 +32,7 @@ export interface UpdateStageInput {
 const now = () => Date.now();
 
 export const workflowService = {
-  async create(input: CreateWorkflowInput, userId: string) {
+  async create(input: CreateWorkflowInput, _userId: string) {
     // Verify project exists
     const project = await db.query.pmProject.findFirst({
       where: eq(pmProject.id, input.projectId),

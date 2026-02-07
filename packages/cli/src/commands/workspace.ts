@@ -1,6 +1,6 @@
 import { Command } from "commander";
-import { get, post, put, del, extractClientOpts, type ClientOptions } from "../client/index.js";
-import { updateConfig, loadConfig } from "../config/index.js";
+import { get, post, put, del, extractClientOpts } from "../client/index.js";
+import { updateConfig } from "../config/index.js";
 import { printOutput, extractFormatOpts, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
 import { resolveWorkspaceId } from "../client/resolver.js";

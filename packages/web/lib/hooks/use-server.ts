@@ -35,8 +35,8 @@ export function useServerMembers() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api.get<{ items: Member[] }>("/api/server/members");
-      setMembers(data.items ?? []);
+      const data = await api.get<Member[] | { items: Member[] }>("/api/server/members");
+      setMembers(Array.isArray(data) ? data : data.items ?? []);
     } catch {
       setMembers([]);
     } finally {

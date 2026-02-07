@@ -41,7 +41,7 @@ interface Workspace {
 interface Project {
   id: string;
   name: string;
-  slug: string;
+  key: string;
 }
 
 // ── Init Options ──
@@ -321,21 +321,21 @@ async function runInit(opts: InitOptions): Promise<void> {
     try {
       const projects = await apiRequest<Project[]>(
         "GET",
-        `/api/workspaces/${defaultWorkspace.slug}/projects`,
+        `/api/projects?workspaceId=${defaultWorkspace.id}`,
         authOpts
       );
 
       if (projects.length > 0) {
         if (opts.projectName) {
           defaultProject = projects.find(
-            (p) => p.name === opts.projectName || p.slug === opts.projectName
+            (p) => p.name === opts.projectName || p.key === opts.projectName
           );
           if (!defaultProject) {
             defaultProject = await apiRequest<Project>("POST", "/api/projects", {
               ...authOpts,
               body: {
                 name: opts.projectName,
-                slug: opts.projectName.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
+                key: opts.projectName.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10) || "PROJ",
                 workspaceId: defaultWorkspace.id,
               },
             });
@@ -345,8 +345,8 @@ async function runInit(opts: InitOptions): Promise<void> {
           const CREATE_NEW = "__create_new__";
           const choices = [
             ...projects.map((p) => ({
-              name: `${p.name} (${p.slug})`,
-              value: p.slug,
+              name: `${p.name} (${p.key})`,
+              value: p.key,
             })),
             { name: "Create new project...", value: CREATE_NEW },
           ];
@@ -356,17 +356,17 @@ async function runInit(opts: InitOptions): Promise<void> {
           });
           if (selected === CREATE_NEW) {
             const name = await input!({ message: "Project name:" });
-            const slug = await input!({
-              message: "Project slug:",
-              default: name.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
+            const key = await input!({
+              message: "Project key (uppercase):",
+              default: name.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10) || "PROJ",
             });
             defaultProject = await apiRequest<Project>("POST", "/api/projects", {
               ...authOpts,
-              body: { name, slug, workspaceId: defaultWorkspace.id },
+              body: { name, key, workspaceId: defaultWorkspace.id },
             });
             console.log(`Created project: ${defaultProject.name}`);
           } else {
-            defaultProject = projects.find((p) => p.slug === selected);
+            defaultProject = projects.find((p) => p.key === selected);
           }
         } else {
           defaultProject = projects[0];
@@ -374,22 +374,22 @@ async function runInit(opts: InitOptions): Promise<void> {
       } else {
         // No projects, create one
         const projName = opts.projectName ?? "Default Project";
-        const projSlug = projName.toLowerCase().replace(/[^a-z0-9-]/g, "-");
+        const projKey = projName.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10) || "PROJ";
 
         if (isInteractive && input) {
           const name = await input({ message: "Project name:", default: projName });
-          const slug = await input({
-            message: "Project slug:",
-            default: name.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
+          const key = await input({
+            message: "Project key (uppercase):",
+            default: name.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10) || "PROJ",
           });
           defaultProject = await apiRequest<Project>("POST", "/api/projects", {
             ...authOpts,
-            body: { name, slug, workspaceId: defaultWorkspace.id },
+            body: { name, key, workspaceId: defaultWorkspace.id },
           });
         } else {
           defaultProject = await apiRequest<Project>("POST", "/api/projects", {
             ...authOpts,
-            body: { name: projName, slug: projSlug, workspaceId: defaultWorkspace.id },
+            body: { name: projName, key: projKey, workspaceId: defaultWorkspace.id },
           });
         }
         console.log(`Created project: ${defaultProject.name}`);
@@ -402,7 +402,7 @@ async function runInit(opts: InitOptions): Promise<void> {
 
     // Save default project
     if (defaultProject) {
-      updateConfig({ defaults: { project: defaultProject.slug } });
+      updateConfig({ defaults: { project: defaultProject.key } });
     }
   }
 
@@ -418,7 +418,7 @@ async function runInit(opts: InitOptions): Promise<void> {
     console.log(`    Workspace:  ${defaultWorkspace.name} (${defaultWorkspace.slug})`);
   }
   if (defaultProject) {
-    console.log(`    Project:    ${defaultProject.name} (${defaultProject.slug})`);
+    console.log(`    Project:    ${defaultProject.name} (${defaultProject.key})`);
   }
   console.log(`    Config:     ${CONFIG_FILE}`);
   console.log("");

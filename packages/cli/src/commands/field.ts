@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { get, post, put, del, apiRequest, extractClientOpts, type ClientOptions } from "../client/index.js";
+import { get, post, put, apiRequest, extractClientOpts, type ClientOptions } from "../client/index.js";
 import { loadConfig } from "../config/index.js";
 import { resolveWorkspaceAndProject } from "../client/resolver.js";
 import { printOutput, extractFormatOpts, printSuccess, printError } from "../output/formatter.js";
