@@ -53,6 +53,7 @@ export const workspaceService = {
       db.insert(pmWorkspaceMember).values({
         workspaceId: id,
         userId,
+        role: "ADMIN",
         createdAt: timestamp,
       }),
     ]);
@@ -173,7 +174,7 @@ export const workspaceService = {
     return workspace;
   },
 
-  async addMember(workspaceId: string, userId: string) {
+  async addMember(workspaceId: string, userId: string, role: "ADMIN" | "MEMBER" | "VIEWER" = "MEMBER") {
     await this.getById(workspaceId);
 
     const existing = await db.query.pmWorkspaceMember.findFirst({
@@ -189,8 +190,22 @@ export const workspaceService = {
     await db.insert(pmWorkspaceMember).values({
       workspaceId,
       userId,
+      role,
       createdAt: now(),
     });
+  },
+
+  async updateMemberRole(workspaceId: string, userId: string, role: "ADMIN" | "MEMBER" | "VIEWER") {
+    await this.getById(workspaceId);
+    await db
+      .update(pmWorkspaceMember)
+      .set({ role })
+      .where(
+        and(
+          eq(pmWorkspaceMember.workspaceId, workspaceId),
+          eq(pmWorkspaceMember.userId, userId),
+        ),
+      );
   },
 
   async removeMember(workspaceId: string, userId: string) {
@@ -210,5 +225,40 @@ export const workspaceService = {
       where: eq(pmWorkspaceMember.workspaceId, workspaceId),
       with: { user: true },
     });
+  },
+
+  async listForUser(query: ListWorkspacesQuery, userId: string) {
+    const conditions = [];
+    if (!query.includeArchived) {
+      conditions.push(isNull(pmWorkspace.archivedAt));
+    }
+    if (query.search) {
+      conditions.push(like(pmWorkspace.name, `%${query.search}%`));
+    }
+    // Only workspaces where user is a member
+    conditions.push(
+      sql`${pmWorkspace.id} IN (SELECT workspace_id FROM pm_workspace_member WHERE user_id = ${userId})`,
+    );
+
+    const where = and(...conditions);
+    const limit = query.limit ?? 50;
+    const offset = query.offset ?? 0;
+
+    const sortCol = query.sort === "name" ? pmWorkspace.name
+      : query.sort === "updated_at" ? pmWorkspace.updatedAt
+      : pmWorkspace.createdAt;
+    const orderFn = query.order === "desc" ? desc : asc;
+
+    const [items, countResult] = await Promise.all([
+      db.select().from(pmWorkspace).where(where).orderBy(orderFn(sortCol)).limit(limit).offset(offset),
+      db.select({ count: sql<number>`count(*)` }).from(pmWorkspace).where(where),
+    ]);
+
+    return {
+      items,
+      total: countResult[0]?.count ?? 0,
+      limit,
+      offset,
+    };
   },
 };

@@ -2,7 +2,7 @@ import { Command } from "commander";
 import { get, post, put, del, extractClientOpts, type ClientOptions } from "../client/index.js";
 import { resolveWorkspaceId, resolveWorkspaceAndProject } from "../client/resolver.js";
 import { updateConfig, loadConfig } from "../config/index.js";
-import { printOutput, printSuccess, printError } from "../output/formatter.js";
+import { printOutput, extractFormatOpts, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
 import { dateToEpoch } from "../helpers/resolve.js";
 
@@ -47,7 +47,7 @@ Examples:
           ...clientOpts,
           query,
         });
-        printOutput(projects, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(projects, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to list projects");
@@ -86,7 +86,7 @@ Examples:
         if (localOpts.start) body.startAt = dateToEpoch(localOpts.start);
         if (localOpts.due) body.dueAt = dateToEpoch(localOpts.due);
         const result = await post("/api/projects", body, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to create project");
@@ -118,7 +118,7 @@ Examples:
       try {
         const { projectId } = await resolveWorkspaceAndProject(workspace, key, clientOpts);
         const project = await get(`/api/projects/${projectId}`, clientOpts);
-        printOutput(project, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(project, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Project not found");
@@ -161,7 +161,7 @@ Examples:
         if (localOpts.start) body.startAt = dateToEpoch(localOpts.start);
         if (localOpts.due) body.dueAt = dateToEpoch(localOpts.due);
         const result = await put(`/api/projects/${projectId}`, body, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to update project");
@@ -295,7 +295,7 @@ Examples:
           { descriptionMd: localOpts.body },
           clientOpts
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
         printSuccess("Project description updated.");
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
@@ -337,7 +337,7 @@ Examples:
       try {
         const { projectId } = await resolveWorkspaceAndProject(workspace, projectKey, clientOpts);
         const result = await get(`/api/projects/${projectId}/members`, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to list project members");
@@ -387,7 +387,7 @@ Examples:
           body,
           clientOpts
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to add project member");
@@ -435,7 +435,7 @@ Examples:
           body,
           clientOpts
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to update project member");
@@ -507,7 +507,7 @@ Examples:
       try {
         const { projectId } = await resolveWorkspaceAndProject(workspace, projectKey, clientOpts);
         const result = await get(`/api/projects/${projectId}/members/tree`, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to get project member tree");

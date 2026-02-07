@@ -3,6 +3,7 @@
 import { Command } from "commander";
 import { EXIT_CODES } from "@pmpm/shared/constants";
 import { PmpmApiError } from "./client/index.js";
+import { setNoColor, printError } from "./output/formatter.js";
 import { registerAuthCommand } from "./commands/auth.js";
 import { registerWorkspaceCommand } from "./commands/workspace.js";
 import { registerProjectCommand } from "./commands/project.js";
@@ -22,6 +23,9 @@ import { registerRiskCommand } from "./commands/risk.js";
 import { registerRemindCommand } from "./commands/remind.js";
 import { registerDailyCommand } from "./commands/daily.js";
 import { registerCcpmCommand } from "./commands/ccpm.js";
+import { registerConfigCommand } from "./commands/config.js";
+import { registerInitCommand } from "./commands/init.js";
+import { registerCompletionCommand } from "./commands/completion.js";
 
 const program = new Command();
 
@@ -31,14 +35,16 @@ program
     "CLI-first project management tool. Manage workspaces, projects, tasks, and more from your terminal."
   )
   .version("0.1.0")
-  .option("--format <type>", "Output format: table|json|yaml", "table")
+  .option("--format <type>", "Output format: table|json|yaml|csv", "table")
   .option("--fields <list>", "Comma-separated list of fields to display")
   .option("--quiet", "Minimal output (IDs only)")
   .option("--debug", "Show debug information")
   .option("--no-pager", "Do not use a pager for output")
   .option("--profile <name>", "Connection profile name", "default")
   .option("--token <token>", "Authentication token (overrides saved credentials)")
-  .option("--server <url>", "Server URL (overrides config)");
+  .option("--server <url>", "Server URL (overrides config)")
+  .option("--no-color", "Disable colored output")
+  .option("--no-headers", "Omit header row in table/csv output");
 
 // ── Register all commands ──
 registerAuthCommand(program);
@@ -60,6 +66,17 @@ registerRiskCommand(program);
 registerRemindCommand(program);
 registerDailyCommand(program);
 registerCcpmCommand(program);
+registerConfigCommand(program);
+registerInitCommand(program);
+registerCompletionCommand(program);
+
+// ── Pre-action: apply global flags ──
+program.hook("preAction", (thisCommand) => {
+  const opts = thisCommand.optsWithGlobals();
+  if (opts.color === false) {
+    setNoColor(true);
+  }
+});
 
 // ── Global error handler ──
 program.exitOverride();
@@ -69,7 +86,7 @@ async function main() {
     await program.parseAsync(process.argv);
   } catch (err: unknown) {
     if (err instanceof PmpmApiError) {
-      console.error(`Error: ${err.message}`);
+      printError(err.formatFull());
       process.exit(err.exitCode);
     }
 
@@ -85,7 +102,7 @@ async function main() {
     }
 
     if (err instanceof Error) {
-      console.error(`Error: ${err.message}`);
+      printError(err.message);
     }
     process.exit(EXIT_CODES.GENERAL_ERROR);
   }

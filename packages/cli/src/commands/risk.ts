@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { get, post, put, del, extractClientOpts, type ClientOptions } from "../client/index.js";
 import { loadConfig } from "../config/index.js";
-import { printOutput, printSuccess, printError } from "../output/formatter.js";
+import { printOutput, extractFormatOpts, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
 import { resolveWorkspaceId, resolveProjectId } from "../helpers/resolve.js";
 
@@ -71,7 +71,7 @@ Examples:
           ...clientOpts,
           query,
         });
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to list risks");
@@ -116,7 +116,7 @@ Examples:
           },
           clientOpts
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to create risk");
@@ -141,7 +141,7 @@ Examples:
       const clientOpts = extractClientOpts(opts);
       try {
         const riskItem = await get(`/api/risks/${id}`, clientOpts);
-        printOutput(riskItem, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(riskItem, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Risk not found");
@@ -181,7 +181,7 @@ Examples:
       if (localOpts.due) body.dueAt = new Date(localOpts.due).getTime();
       try {
         const result = await put(`/api/risks/${id}`, body, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to update risk");

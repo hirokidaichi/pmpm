@@ -126,6 +126,16 @@ describe("Usecase 2: Multi-User Task Lifecycle with Inbox Notifications", () => 
       expect(body.name).toBe("Task Lifecycle Workspace");
       expect(body.slug).toBe("task-lifecycle");
       workspaceId = body.id;
+      // Add Bob and Diana to workspace for RBAC
+      const now = Date.now();
+      await ctx.client.execute({
+        sql: `INSERT INTO pm_workspace_member (workspace_id, user_id, role, created_at) VALUES (?, ?, ?, ?)`,
+        args: [workspaceId, bobId, "MEMBER", now],
+      });
+      await ctx.client.execute({
+        sql: `INSERT INTO pm_workspace_member (workspace_id, user_id, role, created_at) VALUES (?, ?, ?, ?)`,
+        args: [workspaceId, dianaId, "MEMBER", now],
+      });
     });
 
     it("creates a project in the workspace", async () => {
@@ -139,6 +149,16 @@ describe("Usecase 2: Multi-User Task Lifecycle with Inbox Notifications", () => 
       expect(body.name).toBe("Sprint Alpha");
       expect(body.key).toBe("SA");
       projectId = body.id;
+      // Add Bob and Diana to project for RBAC
+      const now = Date.now();
+      await ctx.client.execute({
+        sql: `INSERT INTO pm_project_member (project_id, user_id, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+        args: [projectId, bobId, "MEMBER", now, now],
+      });
+      await ctx.client.execute({
+        sql: `INSERT INTO pm_project_member (project_id, user_id, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+        args: [projectId, dianaId, "MEMBER", now, now],
+      });
     });
 
     it("creates a 4-stage workflow (Backlog -> In Progress -> Review -> Done)", async () => {

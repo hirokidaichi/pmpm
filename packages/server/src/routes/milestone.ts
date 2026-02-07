@@ -3,6 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import type { AppEnv } from "../types.js";
 import { requireRole } from "../middleware/roleGuard.js";
+import { resolveProject, requirePermission } from "../middleware/accessControl.js";
 import { milestoneService } from "../services/milestone.service.js";
 
 const createSchema = z.object({
@@ -34,6 +35,8 @@ export const milestoneRoutes = new Hono<AppEnv>()
     "/",
     requireRole("STAKEHOLDER"),
     zValidator("query", listSchema),
+    resolveProject({ from: "query", key: "projectId" }),
+    requirePermission("read"),
     async (c) => {
       const query = c.req.valid("query");
       const result = await milestoneService.list(query);
@@ -52,6 +55,8 @@ export const milestoneRoutes = new Hono<AppEnv>()
     "/",
     requireRole("MEMBER"),
     zValidator("json", createSchema),
+    resolveProject({ from: "body", key: "projectId" }),
+    requirePermission("write"),
     async (c) => {
       const input = c.req.valid("json");
       const user = c.get("user")!;

@@ -5,6 +5,7 @@ import { eq, and, isNull, asc, sql } from "drizzle-orm";
 import { ulid } from "ulid";
 import type { AppEnv } from "../types.js";
 import { requireRole } from "../middleware/roleGuard.js";
+import { resolveProject, requirePermission } from "../middleware/accessControl.js";
 import { db } from "../db/client.js";
 import { pmDocument } from "../db/schema.js";
 import { AppError } from "../middleware/errorHandler.js";
@@ -40,6 +41,8 @@ export const documentRoutes = new Hono<AppEnv>()
   .get(
     "/:projectId/documents",
     requireRole("STAKEHOLDER"),
+    resolveProject({ from: "param", key: "projectId" }),
+    requirePermission("read"),
     zValidator("query", listDocumentsSchema),
     async (c) => {
       const projectId = c.req.param("projectId");
@@ -69,6 +72,8 @@ export const documentRoutes = new Hono<AppEnv>()
   .get(
     "/:projectId/documents/tree",
     requireRole("STAKEHOLDER"),
+    resolveProject({ from: "param", key: "projectId" }),
+    requirePermission("read"),
     async (c) => {
       const projectId = c.req.param("projectId");
       const allDocs = await db.select().from(pmDocument).where(
@@ -100,6 +105,8 @@ export const documentRoutes = new Hono<AppEnv>()
   .get(
     "/:projectId/documents/:id",
     requireRole("STAKEHOLDER"),
+    resolveProject({ from: "param", key: "projectId" }),
+    requirePermission("read"),
     async (c) => {
       const doc = await db.query.pmDocument.findFirst({
         where: and(
@@ -116,6 +123,8 @@ export const documentRoutes = new Hono<AppEnv>()
   .post(
     "/:projectId/documents",
     requireRole("MEMBER"),
+    resolveProject({ from: "param", key: "projectId" }),
+    requirePermission("write"),
     zValidator("json", createDocumentSchema),
     async (c) => {
       const projectId = c.req.param("projectId");
@@ -150,6 +159,8 @@ export const documentRoutes = new Hono<AppEnv>()
   .put(
     "/:projectId/documents/:id",
     requireRole("MEMBER"),
+    resolveProject({ from: "param", key: "projectId" }),
+    requirePermission("write"),
     zValidator("json", updateDocumentSchema),
     async (c) => {
       const docId = c.req.param("id");
@@ -178,6 +189,8 @@ export const documentRoutes = new Hono<AppEnv>()
   .delete(
     "/:projectId/documents/:id",
     requireRole("MEMBER"),
+    resolveProject({ from: "param", key: "projectId" }),
+    requirePermission("write"),
     async (c) => {
       const docId = c.req.param("id");
       const existing = await db.query.pmDocument.findFirst({

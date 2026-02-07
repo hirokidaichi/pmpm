@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { get, post, put, del, extractClientOpts } from "../client/index.js";
-import { printOutput, printSuccess, printError } from "../output/formatter.js";
+import { printOutput, extractFormatOpts, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
 
 export function registerRemindCommand(program: Command): void {
@@ -42,7 +42,7 @@ Examples:
           },
           clientOpts
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to create reminder");
@@ -74,7 +74,7 @@ Examples:
       if (localOpts.sent) query.sent = "true";
       try {
         const result = await get("/api/reminders", { ...clientOpts, query });
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to list reminders");
@@ -99,7 +99,7 @@ Examples:
       const clientOpts = extractClientOpts(opts);
       try {
         const result = await get(`/api/reminders/${id}`, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Reminder not found");
@@ -131,7 +131,7 @@ Examples:
       if (localOpts.repeat) body.repeat = localOpts.repeat;
       try {
         const result = await put(`/api/reminders/${id}`, body, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to update reminder");

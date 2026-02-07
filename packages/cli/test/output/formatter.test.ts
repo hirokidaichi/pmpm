@@ -3,7 +3,9 @@ import {
   formatTable,
   formatJson,
   formatYaml,
+  formatCsv,
   formatOutput,
+  extractFormatOpts,
 } from "../../src/output/formatter.js";
 
 // ── Test Data ──
@@ -253,5 +255,116 @@ describe("formatOutput", () => {
   it("文字列やプリミティブはそのまま出力される", () => {
     const output = formatOutput("hello world");
     expect(output).toBe("hello world");
+  });
+
+  it("csv フォーマットを処理する", () => {
+    const output = formatOutput(sampleTasks, { format: "csv" });
+    const lines = output.split("\n");
+    expect(lines[0]).toBe("id,title,status,assignee,importance");
+    expect(lines).toHaveLength(3); // header + 2 rows
+  });
+});
+
+// ── formatCsv ──
+
+describe("formatCsv", () => {
+  it("ヘッダーとデータ行を含む", () => {
+    const output = formatCsv(sampleTasks);
+    const lines = output.split("\n");
+
+    expect(lines[0]).toBe("id,title,status,assignee,importance");
+    expect(lines).toHaveLength(3); // header + 2 rows
+  });
+
+  it("データ行の値が正しい", () => {
+    const output = formatCsv(sampleTasks);
+    const lines = output.split("\n");
+
+    expect(lines[1]).toBe("01HXK00100000000,ログイン画面実装,In Progress,tanaka,HIGH");
+    expect(lines[2]).toBe("01HXK00200000000,API設計,Open,suzuki,NORMAL");
+  });
+
+  it("空配列は空文字列を返す", () => {
+    const output = formatCsv([]);
+    expect(output).toBe("");
+  });
+
+  it("noHeader オプションでヘッダーを省略する", () => {
+    const output = formatCsv(sampleTasks, { noHeader: true });
+    const lines = output.split("\n");
+
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toContain("01HXK00100000000");
+  });
+
+  it("フィールドにカンマを含む値を正しくエスケープする", () => {
+    const data = [{ id: "1", name: "Tanaka, Taro" }];
+    const output = formatCsv(data);
+    const lines = output.split("\n");
+
+    expect(lines[1]).toBe('1,"Tanaka, Taro"');
+  });
+
+  it("フィールドにダブルクォートを含む値を正しくエスケープする", () => {
+    const data = [{ id: "1", desc: 'Say "hello"' }];
+    const output = formatCsv(data);
+    const lines = output.split("\n");
+
+    expect(lines[1]).toBe('1,"Say ""hello"""');
+  });
+
+  it("フィールドに改行を含む値を正しくエスケープする", () => {
+    const data = [{ id: "1", desc: "line1\nline2" }];
+    const output = formatCsv(data);
+    const lines = output.split("\n");
+
+    // The entire field should be quoted
+    expect(output).toContain('"line1\nline2"');
+  });
+
+  it("null/undefined 値は '-' で出力される", () => {
+    const data = [{ id: "1", value: null, other: undefined }];
+    const output = formatCsv(data);
+
+    expect(output).toContain(",-,");
+  });
+
+  it("fields オプションでカラムを絞れる", () => {
+    const output = formatCsv(sampleTasks, { fields: "id,title" });
+    const lines = output.split("\n");
+
+    expect(lines[0]).toBe("id,title");
+    expect(lines[1]).toContain("ログイン画面実装");
+    expect(lines[1]).not.toContain("In Progress");
+  });
+
+  it("単一オブジェクトを1行CSVとして出力する", () => {
+    const output = formatCsv(singleItem);
+    const lines = output.split("\n");
+
+    expect(lines[0]).toBe("id,name,slug,description");
+    expect(lines).toHaveLength(2);
+    expect(lines[1]).toContain("Engineering");
+  });
+});
+
+// ── extractFormatOpts ──
+
+describe("extractFormatOpts", () => {
+  it("Commander の opts からフォーマットオプションを抽出する", () => {
+    const opts = { format: "json", fields: "id,title", quiet: true, headers: true };
+    const result = extractFormatOpts(opts);
+
+    expect(result.format).toBe("json");
+    expect(result.fields).toBe("id,title");
+    expect(result.quiet).toBe(true);
+    expect(result.noHeader).toBe(false);
+  });
+
+  it("--no-headers フラグを noHeader に変換する", () => {
+    const opts = { format: "csv", headers: false };
+    const result = extractFormatOpts(opts);
+
+    expect(result.noHeader).toBe(true);
   });
 });

@@ -2,7 +2,7 @@ import { Command } from "commander";
 import { get, post, put, extractClientOpts, type ClientOptions } from "../client/index.js";
 import { resolveWorkspaceAndProject } from "../client/resolver.js";
 import { loadConfig } from "../config/index.js";
-import { printOutput, printSuccess, printError } from "../output/formatter.js";
+import { printOutput, extractFormatOpts, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
 
 async function resolveProjectIds(opts: Record<string, unknown>, clientOpts: ClientOptions): Promise<{
@@ -47,7 +47,7 @@ Examples:
       const { projectId } = await resolveProjectIds({ ...localOpts, ...opts }, clientOpts);
       try {
         const result = await get(`/api/ccpm/projects/${projectId}/critical-chain`, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Critical chain analysis failed");
@@ -78,7 +78,7 @@ Examples:
       if (localOpts.simulations) query.simulations = localOpts.simulations;
       try {
         const result = await get(`/api/ccpm/projects/${projectId}/forecast`, { ...clientOpts, query });
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Forecast failed");
@@ -106,7 +106,7 @@ Examples:
       try {
         const result = await post(`/api/ccpm/projects/${projectId}/buffers/regenerate`, {}, clientOpts);
         printSuccess("Buffers regenerated successfully.");
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Buffer regeneration failed");
@@ -133,7 +133,7 @@ Examples:
       const { projectId } = await resolveProjectIds({ ...localOpts, ...opts }, clientOpts);
       try {
         const result = await get(`/api/ccpm/projects/${projectId}/buffer-status`, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to get buffer status");
@@ -166,7 +166,7 @@ Examples:
       if (localOpts.status) query.status = localOpts.status;
       try {
         const result = await get("/api/ccpm/buffers", { ...clientOpts, query });
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to list buffers");
@@ -198,7 +198,7 @@ Examples:
       if (localOpts.status) body.status = localOpts.status;
       try {
         const result = await put(`/api/ccpm/buffers/${bufferId}`, body, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to update buffer");

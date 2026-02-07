@@ -3,6 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import type { AppEnv } from "../types.js";
 import { requireRole } from "../middleware/roleGuard.js";
+import { resolveProject, resolveWorkspace, requirePermission } from "../middleware/accessControl.js";
 import { projectService } from "../services/project.service.js";
 
 const createProjectSchema = z.object({
@@ -52,13 +53,21 @@ export const projectRoutes = new Hono<AppEnv>()
     zValidator("query", listProjectsSchema),
     async (c) => {
       const query = c.req.valid("query");
-      const result = await projectService.list(query);
+      const membership = c.get("membership");
+      const user = c.get("user")!;
+      if (membership?.role === "ADMIN") {
+        const result = await projectService.list(query);
+        return c.json(result);
+      }
+      const result = await projectService.listForUser(query, user.id);
       return c.json(result);
     },
   )
   .get(
     "/:id",
     requireRole("STAKEHOLDER"),
+    resolveProject({ from: "param", key: "id" }),
+    requirePermission("read"),
     async (c) => {
       const project = await projectService.getById(c.req.param("id"));
       return c.json(project);
@@ -68,6 +77,8 @@ export const projectRoutes = new Hono<AppEnv>()
     "/",
     requireRole("MEMBER"),
     zValidator("json", createProjectSchema),
+    resolveWorkspace({ from: "body", key: "workspaceId" }),
+    requirePermission("write"),
     async (c) => {
       const input = c.req.valid("json");
       const user = c.get("user")!;
@@ -78,6 +89,8 @@ export const projectRoutes = new Hono<AppEnv>()
   .put(
     "/:id",
     requireRole("MEMBER"),
+    resolveProject({ from: "param", key: "id" }),
+    requirePermission("manage"),
     zValidator("json", updateProjectSchema),
     async (c) => {
       const input = c.req.valid("json");
@@ -88,6 +101,8 @@ export const projectRoutes = new Hono<AppEnv>()
   .delete(
     "/:id",
     requireRole("MEMBER"),
+    resolveProject({ from: "param", key: "id" }),
+    requirePermission("manage"),
     async (c) => {
       const project = await projectService.archive(c.req.param("id"));
       return c.json(project);
@@ -96,6 +111,8 @@ export const projectRoutes = new Hono<AppEnv>()
   .post(
     "/:id/members",
     requireRole("MEMBER"),
+    resolveProject({ from: "param", key: "id" }),
+    requirePermission("manage"),
     zValidator("json", addMemberSchema),
     async (c) => {
       const input = c.req.valid("json");
@@ -106,6 +123,8 @@ export const projectRoutes = new Hono<AppEnv>()
   .delete(
     "/:id/members/:userId",
     requireRole("MEMBER"),
+    resolveProject({ from: "param", key: "id" }),
+    requirePermission("manage"),
     async (c) => {
       const project = await projectService.removeMember(
         c.req.param("id"),
@@ -117,6 +136,8 @@ export const projectRoutes = new Hono<AppEnv>()
   .get(
     "/:id/description",
     requireRole("STAKEHOLDER"),
+    resolveProject({ from: "param", key: "id" }),
+    requirePermission("read"),
     async (c) => {
       const project = await projectService.getById(c.req.param("id"));
       return c.json({ descriptionMd: project.descriptionMd ?? "" });
@@ -125,6 +146,8 @@ export const projectRoutes = new Hono<AppEnv>()
   .put(
     "/:id/description",
     requireRole("MEMBER"),
+    resolveProject({ from: "param", key: "id" }),
+    requirePermission("write"),
     zValidator("json", z.object({ descriptionMd: z.string().max(50000) })),
     async (c) => {
       const { descriptionMd } = c.req.valid("json");

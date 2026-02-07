@@ -51,6 +51,7 @@ export const pmWorkspace = sqliteTable("pm_workspace", {
 export const pmWorkspaceMember = sqliteTable("pm_workspace_member", {
   workspaceId: text("workspace_id").notNull().references(() => pmWorkspace.id),
   userId: text("user_id").notNull().references(() => pmUserProfile.userId),
+  role: text("role", { enum: ["ADMIN", "MEMBER", "VIEWER"] }).notNull().default("MEMBER"),
   createdAt: integer("created_at").notNull(),
 }, (table) => [
   primaryKey({ columns: [table.workspaceId, table.userId] }),
@@ -96,6 +97,7 @@ export const pmProjectMember = sqliteTable("pm_project_member", {
 }, (table) => [
   primaryKey({ columns: [table.projectId, table.userId] }),
   index("idx_pm_project_member_user").on(table.userId),
+  index("idx_pm_project_member_project").on(table.projectId),
 ]);
 
 // ---------------------------------------------------------------------------
@@ -284,6 +286,7 @@ export const pmCustomFieldValue = sqliteTable("pm_custom_field_value", {
   updatedAt: integer("updated_at").notNull(),
 }, (table) => [
   primaryKey({ columns: [table.fieldId, table.taskId] }),
+  index("idx_pm_custom_field_value_task").on(table.taskId),
 ]);
 
 export const pmCustomFieldValueMulti = sqliteTable("pm_custom_field_value_multi", {
@@ -397,6 +400,7 @@ export const pmDependency = sqliteTable("pm_dependency", {
   updatedAt: integer("updated_at").notNull(),
 }, (table) => [
   uniqueIndex("uq_pm_dependency_tasks").on(table.predecessorTaskId, table.successorTaskId),
+  index("idx_pm_dependency_successor").on(table.successorTaskId),
 ]);
 
 // ---------------------------------------------------------------------------
@@ -418,6 +422,7 @@ export const pmBuffer = sqliteTable("pm_buffer", {
   updatedAt: integer("updated_at").notNull(),
 }, (table) => [
   index("idx_pm_buffer_project").on(table.projectId, table.bufferType),
+  index("idx_pm_buffer_feeding_source").on(table.feedingSourceTaskId),
 ]);
 
 // ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { get, extractClientOpts } from "../client/index.js";
 import { loadConfig } from "../config/index.js";
-import { printOutput, printError } from "../output/formatter.js";
+import { printOutput, extractFormatOpts, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
 
 function resolveProjectPath(opts: Record<string, unknown>): {
@@ -49,7 +49,7 @@ Examples:
           `/api/workspaces/${workspace}/projects/${project}/reports/summary`,
           clientOpts
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to generate summary");
@@ -79,7 +79,7 @@ Examples:
           `/api/workspaces/${workspace}/projects/${project}/reports/workload`,
           clientOpts
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to generate workload report");
@@ -117,7 +117,7 @@ Examples:
           `/api/workspaces/${workspace}/projects/${project}/reports/time`,
           { ...clientOpts, query }
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to generate time report");

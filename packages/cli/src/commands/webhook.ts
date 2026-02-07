@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { get, post, put, del, extractClientOpts } from "../client/index.js";
-import { printOutput, printSuccess, printError } from "../output/formatter.js";
+import { printOutput, extractFormatOpts, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
 
 export function registerWebhookCommand(program: Command): void {
@@ -25,7 +25,7 @@ Examples:
       const clientOpts = extractClientOpts(opts);
       try {
         const result = await get(`/api/webhooks`, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to list webhooks");
@@ -65,7 +65,7 @@ Examples:
         };
         if (localOpts.secret) body.secret = localOpts.secret;
         const result = await post(`/api/webhooks`, body, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to create webhook");
@@ -103,7 +103,7 @@ Examples:
       if (localOpts.inactive) body.active = false;
       try {
         const result = await put(`/api/webhooks/${id}`, body, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to update webhook");
@@ -127,7 +127,7 @@ Examples:
       const clientOpts = extractClientOpts(opts);
       try {
         const result = await post(`/api/webhooks/${id}/test`, {}, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to test webhook");
@@ -180,7 +180,7 @@ Examples:
           ...clientOpts,
           query: { limit: localOpts.limit },
         });
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to list deliveries");

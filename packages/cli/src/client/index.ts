@@ -10,13 +10,68 @@ export interface ApiError {
 }
 
 export class PmpmApiError extends Error {
+  public readonly hint?: string;
+
   constructor(
     public readonly statusCode: number,
     public readonly apiError: ApiError,
-    public readonly exitCode: number
+    public readonly exitCode: number,
+    hint?: string
   ) {
     super(apiError.message);
     this.name = "PmpmApiError";
+    this.hint = hint;
+  }
+
+  /** Full error string with details and hint for CLI display */
+  formatFull(): string {
+    const parts = [this.message];
+    if (this.apiError.details) {
+      parts.push(formatDetails(this.apiError.details));
+    }
+    if (this.hint) {
+      parts.push(`Hint: ${this.hint}`);
+    }
+    return parts.join("\n");
+  }
+}
+
+function formatDetails(details: unknown): string {
+  if (typeof details === "string") return details;
+  if (Array.isArray(details)) {
+    return details
+      .map((d) => {
+        if (typeof d === "object" && d !== null) {
+          const obj = d as Record<string, unknown>;
+          const field = obj.field || obj.path;
+          const msg = obj.message || obj.msg;
+          if (field && msg) return `  - ${field}: ${msg}`;
+          if (msg) return `  - ${msg}`;
+        }
+        return `  - ${String(d)}`;
+      })
+      .join("\n");
+  }
+  if (typeof details === "object" && details !== null) {
+    return Object.entries(details as Record<string, unknown>)
+      .map(([k, v]) => `  - ${k}: ${v}`)
+      .join("\n");
+  }
+  return String(details);
+}
+
+function hintForStatus(status: number): string | undefined {
+  switch (status) {
+    case 401:
+      return "Run 'pmpm auth login' to authenticate.";
+    case 403:
+      return "Check that you have the required role for this operation.";
+    case 404:
+      return "Verify the ID or slug is correct with the corresponding 'list' command.";
+    case 422:
+      return "Check the required fields and their formats.";
+    default:
+      return undefined;
   }
 }
 
@@ -114,7 +169,8 @@ export async function apiRequest<T>(
         code: "NETWORK_ERROR",
         message: `Cannot connect to server at ${serverUrl}. Is the server running?`,
       },
-      EXIT_CODES.NETWORK_ERROR
+      EXIT_CODES.NETWORK_ERROR,
+      "Check the server URL with 'pmpm config show' or start the server with 'pmpm server start'."
     );
   }
 
@@ -145,7 +201,8 @@ export async function apiRequest<T>(
     throw new PmpmApiError(
       response.status,
       apiError,
-      statusToExitCode(response.status)
+      statusToExitCode(response.status),
+      hintForStatus(response.status)
     );
   }
 

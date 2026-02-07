@@ -93,6 +93,12 @@ describe("Usecase 3: Hierarchical Document Management", () => {
       expect(status).toBe(201);
       expect(body.name).toBe("Engineering");
       workspaceId = body.id;
+      // Add Bob to workspace for RBAC
+      const now = Date.now();
+      await ctx.client.execute({
+        sql: `INSERT INTO pm_workspace_member (workspace_id, user_id, role, created_at) VALUES (?, ?, ?, ?)`,
+        args: [workspaceId, bobId, "MEMBER", now],
+      });
     });
 
     it("creates a project", async () => {
@@ -105,6 +111,12 @@ describe("Usecase 3: Hierarchical Document Management", () => {
       expect(status).toBe(201);
       expect(body.name).toBe("Platform");
       projectId = body.id;
+      // Add Bob to project for RBAC
+      const now = Date.now();
+      await ctx.client.execute({
+        sql: `INSERT INTO pm_project_member (project_id, user_id, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+        args: [projectId, bobId, "MEMBER", now, now],
+      });
     });
   });
 

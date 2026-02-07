@@ -3,6 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import type { AppEnv } from "../types.js";
 import { requireRole } from "../middleware/roleGuard.js";
+import { resolveProject, requirePermission } from "../middleware/accessControl.js";
 import { commentService } from "../services/comment.service.js";
 
 const createCommentSchema = z.object({
@@ -23,6 +24,8 @@ export const commentRoutes = new Hono<AppEnv>()
   .get(
     "/:taskId/comments",
     requireRole("STAKEHOLDER"),
+    resolveProject({ from: "task", paramKey: "taskId" }),
+    requirePermission("read"),
     zValidator("query", listCommentsSchema),
     async (c) => {
       const query = c.req.valid("query");
@@ -36,6 +39,8 @@ export const commentRoutes = new Hono<AppEnv>()
   .post(
     "/:taskId/comments",
     requireRole("STAKEHOLDER"),
+    resolveProject({ from: "task", paramKey: "taskId" }),
+    requirePermission("read"),
     zValidator("json", createCommentSchema),
     async (c) => {
       const input = c.req.valid("json");
@@ -50,6 +55,8 @@ export const commentRoutes = new Hono<AppEnv>()
   .put(
     "/:taskId/comments/:id",
     requireRole("STAKEHOLDER"),
+    resolveProject({ from: "task", paramKey: "taskId" }),
+    requirePermission("read"),
     zValidator("json", updateCommentSchema),
     async (c) => {
       const input = c.req.valid("json");
@@ -61,6 +68,8 @@ export const commentRoutes = new Hono<AppEnv>()
   .delete(
     "/:taskId/comments/:id",
     requireRole("STAKEHOLDER"),
+    resolveProject({ from: "task", paramKey: "taskId" }),
+    requirePermission("read"),
     async (c) => {
       const user = c.get("user")!;
       await commentService.softDelete(c.req.param("id"), user.id);

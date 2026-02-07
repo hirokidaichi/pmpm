@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { get, post, put, del, extractClientOpts } from "../client/index.js";
-import { printOutput, printSuccess, printError } from "../output/formatter.js";
+import { printOutput, extractFormatOpts, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
 
 export function registerCommentCommand(program: Command): void {
@@ -30,7 +30,7 @@ Examples:
           { bodyMd: localOpts.message },
           clientOpts
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to add comment");
@@ -56,7 +56,7 @@ Examples:
       const clientOpts = extractClientOpts(opts);
       try {
         const result = await get(`/api/tasks/${taskId}/comments`, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to list comments");
@@ -86,7 +86,7 @@ Examples:
           { bodyMd: localOpts.message },
           clientOpts
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to edit comment");

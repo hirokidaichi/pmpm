@@ -1,6 +1,7 @@
 import type {
   ServerRole,
   MembershipStatus,
+  WorkspaceRole,
   ProjectRole,
   ProjectStatus,
   StageCategory,
@@ -61,6 +62,7 @@ export interface Workspace {
 export interface WorkspaceMember {
   workspaceId: Id;
   userId: Id;
+  role: WorkspaceRole;
   createdAt: UnixMs;
 }
 
@@ -484,4 +486,7 @@ export interface ProjectForecast {
 }
 
 // ── Access Role (union of server + project roles) ──
-export type AccessRole = ServerRole | ProjectRole;
+export type AccessRole = ServerRole | WorkspaceRole | ProjectRole;
+
+// ── Permission Levels ──
+export type Permission = "manage" | "write" | "read" | "none";

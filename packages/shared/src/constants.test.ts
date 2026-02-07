@@ -171,8 +171,8 @@ describe("constants", () => {
   });
 
   describe("INBOX_MESSAGE_TYPES", () => {
-    it("6つのメッセージタイプが定義されている", () => {
-      expect(INBOX_MESSAGE_TYPES).toHaveLength(6);
+    it("7つのメッセージタイプが定義されている", () => {
+      expect(INBOX_MESSAGE_TYPES).toHaveLength(7);
     });
 
     it("全メッセージタイプを含む", () => {
@@ -182,6 +182,7 @@ describe("constants", () => {
       expect(INBOX_MESSAGE_TYPES).toContain("COMMENT");
       expect(INBOX_MESSAGE_TYPES).toContain("DIRECT_MESSAGE");
       expect(INBOX_MESSAGE_TYPES).toContain("SYSTEM");
+      expect(INBOX_MESSAGE_TYPES).toContain("REMINDER");
     });
   });
 
@@ -289,14 +290,15 @@ describe("constants", () => {
   });
 
   describe("OUTPUT_FORMATS", () => {
-    it("3つのフォーマットが定義されている", () => {
-      expect(OUTPUT_FORMATS).toHaveLength(3);
+    it("4つのフォーマットが定義されている", () => {
+      expect(OUTPUT_FORMATS).toHaveLength(4);
     });
 
-    it("json, table, yaml を含む", () => {
+    it("json, table, yaml, csv を含む", () => {
       expect(OUTPUT_FORMATS).toContain("json");
       expect(OUTPUT_FORMATS).toContain("table");
       expect(OUTPUT_FORMATS).toContain("yaml");
+      expect(OUTPUT_FORMATS).toContain("csv");
     });
   });
 });

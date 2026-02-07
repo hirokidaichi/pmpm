@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { get, put, extractClientOpts } from "../client/index.js";
-import { printOutput, printError } from "../output/formatter.js";
+import { printOutput, extractFormatOpts, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
 
 export function registerUserCommand(program: Command): void {
@@ -24,7 +24,7 @@ Examples:
       const clientOpts = extractClientOpts(opts);
       try {
         const result = await get(`/api/users/me`, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to get user info");
@@ -49,7 +49,7 @@ Examples:
       const clientOpts = extractClientOpts(opts);
       try {
         const result = await get(`/api/users/${userId}`, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "User not found");
@@ -81,7 +81,7 @@ Examples:
       if (localOpts.email) body.email = localOpts.email;
       try {
         const result = await put(`/api/users/me`, body, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to update profile");
@@ -110,7 +110,7 @@ Examples:
           ...clientOpts,
           query: { limit: localOpts.limit },
         });
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to list users");

@@ -5,7 +5,7 @@ import {
   resolveServerUrl,
 } from "../config/index.js";
 import { get, post, del, extractClientOpts } from "../client/index.js";
-import { printOutput, printSuccess, printError } from "../output/formatter.js";
+import { printOutput, extractFormatOpts, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
 
 export function registerAuthCommand(program: Command): void {
@@ -92,7 +92,7 @@ Examples:
 
       try {
         const user = await get("/api/users/me", clientOpts);
-        printOutput(user, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(user, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to get user info");
@@ -127,7 +127,7 @@ Examples:
           { name: localOpts.name, expiresIn: localOpts.expiresIn },
           clientOpts
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to create API key");
@@ -151,7 +151,7 @@ Examples:
 
       try {
         const keys = await get("/api/auth/api-keys", clientOpts);
-        printOutput(keys, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(keys, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to list API keys");

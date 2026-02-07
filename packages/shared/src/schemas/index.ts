@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   SERVER_ROLES,
   MEMBERSHIP_STATUSES,
+  WORKSPACE_ROLES,
   PROJECT_ROLES,
   PROJECT_STATUSES,
   STAGE_CATEGORIES,
@@ -52,6 +53,21 @@ export const updateWorkspaceSchema = z.object({
   description: optionalString,
 });
 export type UpdateWorkspaceInput = z.infer<typeof updateWorkspaceSchema>;
+
+// ── Workspace Member ──
+
+export const addWorkspaceMemberSchema = z.object({
+  userId: id,
+  role: z.enum(WORKSPACE_ROLES).default("MEMBER"),
+});
+export type AddWorkspaceMemberInput = z.infer<typeof addWorkspaceMemberSchema>;
+
+export const updateWorkspaceMemberSchema = z.object({
+  role: z.enum(WORKSPACE_ROLES),
+});
+export type UpdateWorkspaceMemberInput = z.infer<
+  typeof updateWorkspaceMemberSchema
+>;
 
 // ── Project ──
 

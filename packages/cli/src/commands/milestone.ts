@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { get, post, put, del, extractClientOpts, type ClientOptions } from "../client/index.js";
 import { loadConfig } from "../config/index.js";
-import { printOutput, printSuccess, printError } from "../output/formatter.js";
+import { printOutput, extractFormatOpts, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
 import { resolveWorkspaceId, resolveProjectId } from "../helpers/resolve.js";
 
@@ -72,7 +72,7 @@ Examples:
           ...clientOpts,
           query,
         });
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to list milestones");
@@ -111,7 +111,7 @@ Examples:
           },
           clientOpts
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to create milestone");
@@ -136,7 +136,7 @@ Examples:
       const clientOpts = extractClientOpts(opts);
       try {
         const milestone = await get(`/api/milestones/${id}`, clientOpts);
-        printOutput(milestone, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(milestone, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Milestone not found");
@@ -170,7 +170,7 @@ Examples:
       if (localOpts.due) body.dueAt = new Date(localOpts.due).getTime();
       try {
         const result = await put(`/api/milestones/${id}`, body, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to update milestone");

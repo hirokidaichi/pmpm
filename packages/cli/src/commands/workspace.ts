@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { get, post, put, del, extractClientOpts, type ClientOptions } from "../client/index.js";
 import { updateConfig, loadConfig } from "../config/index.js";
-import { printOutput, printSuccess, printError } from "../output/formatter.js";
+import { printOutput, extractFormatOpts, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
 import { resolveWorkspaceId } from "../client/resolver.js";
 
@@ -28,7 +28,7 @@ Examples:
       const clientOpts = extractClientOpts(opts);
       try {
         const workspaces = await get("/api/workspaces", clientOpts);
-        printOutput(workspaces, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(workspaces, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to list workspaces");
@@ -62,7 +62,7 @@ Examples:
           },
           clientOpts
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to create workspace");
@@ -87,7 +87,7 @@ Examples:
       try {
         const id = await resolveWorkspaceId(slug, clientOpts);
         const workspace = await get(`/api/workspaces/${id}`, clientOpts);
-        printOutput(workspace, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(workspace, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Workspace not found");
@@ -117,7 +117,7 @@ Examples:
       try {
         const id = await resolveWorkspaceId(slug, clientOpts);
         const result = await put(`/api/workspaces/${id}`, body, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to update workspace");

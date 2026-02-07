@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { get, post, patch, del, extractClientOpts, type ClientOptions } from "../client/index.js";
 import { loadConfig } from "../config/index.js";
-import { printOutput, printSuccess, printError } from "../output/formatter.js";
+import { printOutput, extractFormatOpts, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
 import { resolveWorkspaceId, resolveProjectId } from "../helpers/resolve.js";
 
@@ -92,7 +92,7 @@ Examples:
           },
           clientOpts
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to create daily report");
@@ -126,7 +126,7 @@ Examples:
         if (localOpts.plans) body.plans = localOpts.plans;
         if (localOpts.issues) body.issues = localOpts.issues;
         const result = await patch(`/api/daily-reports/${report.id}`, body, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to edit daily report");
@@ -164,7 +164,7 @@ Examples:
           ...clientOpts,
           query,
         });
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to generate preview");
@@ -192,7 +192,7 @@ Examples:
       try {
         const report = await findReportByDate(localOpts.date, clientOpts);
         const result = await get(`/api/daily-reports/${report.id}`, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Daily report not found");
@@ -233,7 +233,7 @@ Examples:
           ...clientOpts,
           query,
         });
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to list daily reports");

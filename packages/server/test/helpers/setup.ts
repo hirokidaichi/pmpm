@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS pm_workspace (
 CREATE TABLE IF NOT EXISTS pm_workspace_member (
   workspace_id TEXT NOT NULL,
   user_id TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'MEMBER' CHECK (role IN ('ADMIN', 'MEMBER', 'VIEWER')),
   created_at INTEGER NOT NULL,
   PRIMARY KEY (workspace_id, user_id)
 );
@@ -123,6 +124,7 @@ CREATE TABLE IF NOT EXISTS pm_project_member (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pm_project_member_user ON pm_project_member(user_id);
+CREATE INDEX IF NOT EXISTS idx_pm_project_member_project ON pm_project_member(project_id);
 
 -- Task
 CREATE TABLE IF NOT EXISTS pm_task (
@@ -307,6 +309,7 @@ CREATE TABLE IF NOT EXISTS pm_custom_field_value (
   updated_at INTEGER NOT NULL,
   PRIMARY KEY (field_id, task_id)
 );
+CREATE INDEX IF NOT EXISTS idx_pm_custom_field_value_task ON pm_custom_field_value(task_id);
 
 CREATE TABLE IF NOT EXISTS pm_custom_field_value_multi (
   field_id TEXT NOT NULL,
@@ -403,6 +406,7 @@ CREATE TABLE IF NOT EXISTS pm_dependency (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_pm_dependency_tasks ON pm_dependency(predecessor_task_id, successor_task_id);
+CREATE INDEX IF NOT EXISTS idx_pm_dependency_successor ON pm_dependency(successor_task_id);
 
 -- Buffer (CCPM)
 CREATE TABLE IF NOT EXISTS pm_buffer (
@@ -421,6 +425,7 @@ CREATE TABLE IF NOT EXISTS pm_buffer (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pm_buffer_project ON pm_buffer(project_id, buffer_type);
+CREATE INDEX IF NOT EXISTS idx_pm_buffer_feeding_source ON pm_buffer(feeding_source_task_id);
 
 -- Inbox
 CREATE TABLE IF NOT EXISTS pm_inbox_message (

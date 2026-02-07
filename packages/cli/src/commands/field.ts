@@ -2,7 +2,7 @@ import { Command } from "commander";
 import { get, post, put, del, apiRequest, extractClientOpts, type ClientOptions } from "../client/index.js";
 import { loadConfig } from "../config/index.js";
 import { resolveWorkspaceAndProject } from "../client/resolver.js";
-import { printOutput, printSuccess, printError } from "../output/formatter.js";
+import { printOutput, extractFormatOpts, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
 
 async function resolveProjectPath(
@@ -56,7 +56,7 @@ Examples:
           `/api/fields`,
           { ...clientOpts, query: { projectId } }
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to list fields");
@@ -101,7 +101,7 @@ Examples:
           body,
           clientOpts
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to create field");
@@ -133,7 +133,7 @@ Examples:
       if (localOpts.options) body.options = localOpts.options.split(",").map((o: string) => o.trim());
       try {
         const result = await put(`/api/fields/${fieldId}`, body, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to update field");
@@ -164,7 +164,7 @@ Examples:
           { fieldId: localOpts.field, taskId, value: localOpts.value },
           clientOpts
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to set field value");

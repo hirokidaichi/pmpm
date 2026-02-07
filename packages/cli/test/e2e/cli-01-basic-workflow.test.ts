@@ -100,6 +100,12 @@ describe("CLI E2E 1: Basic Workflow", () => {
       expect(result.description).toBe("Engineering team");
       expect(result.id).toBeDefined();
       workspaceId = result.id;
+      // Add Bob to workspace for RBAC
+      const now = Date.now();
+      await ctx.client.execute({
+        sql: `INSERT INTO pm_workspace_member (workspace_id, user_id, role, created_at) VALUES (?, ?, ?, ?)`,
+        args: [workspaceId, bobId, "MEMBER", now],
+      });
     });
 
     it("lists workspaces via CLI", async () => {
@@ -129,6 +135,12 @@ describe("CLI E2E 1: Basic Workflow", () => {
       expect(result.key).toBe("BE");
       expect(result.workspaceId).toBe(workspaceId);
       projectId = result.id;
+      // Add Bob to project for RBAC
+      const now = Date.now();
+      await ctx.client.execute({
+        sql: `INSERT INTO pm_project_member (project_id, user_id, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+        args: [projectId, bobId, "MEMBER", now, now],
+      });
     });
 
     it("lists projects via CLI", async () => {

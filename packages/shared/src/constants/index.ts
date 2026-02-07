@@ -6,6 +6,10 @@ export type ServerRole = (typeof SERVER_ROLES)[number];
 export const MEMBERSHIP_STATUSES = ["INVITED", "ACTIVE", "SUSPENDED"] as const;
 export type MembershipStatus = (typeof MEMBERSHIP_STATUSES)[number];
 
+// ── Workspace Roles ──
+export const WORKSPACE_ROLES = ["ADMIN", "MEMBER", "VIEWER"] as const;
+export type WorkspaceRole = (typeof WORKSPACE_ROLES)[number];
+
 // ── Project Roles ──
 export const PROJECT_ROLES = [
   "LEAD",
@@ -83,6 +87,7 @@ export const INBOX_MESSAGE_TYPES = [
   "COMMENT",
   "DIRECT_MESSAGE",
   "SYSTEM",
+  "REMINDER",
 ] as const;
 export type InboxMessageType = (typeof INBOX_MESSAGE_TYPES)[number];
 
@@ -138,5 +143,5 @@ export const EXIT_CODES = {
 export type ExitCode = (typeof EXIT_CODES)[keyof typeof EXIT_CODES];
 
 // ── Output Formats ──
-export const OUTPUT_FORMATS = ["json", "table", "yaml"] as const;
+export const OUTPUT_FORMATS = ["json", "table", "yaml", "csv"] as const;
 export type OutputFormat = (typeof OUTPUT_FORMATS)[number];

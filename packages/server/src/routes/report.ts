@@ -4,6 +4,7 @@ import { z } from "zod";
 import { eq, and, isNull, sql, gte, lte } from "drizzle-orm";
 import type { AppEnv } from "../types.js";
 import { requireRole } from "../middleware/roleGuard.js";
+import { resolveProject, requirePermission } from "../middleware/accessControl.js";
 import { db } from "../db/client.js";
 import {
   pmTask,
@@ -33,6 +34,8 @@ export const reportRoutes = new Hono<AppEnv>()
     "/summary",
     requireRole("STAKEHOLDER"),
     zValidator("query", summarySchema),
+    resolveProject({ from: "query", key: "projectId" }),
+    requirePermission("read"),
     async (c) => {
       const { projectId } = c.req.valid("query");
 
@@ -92,6 +95,8 @@ export const reportRoutes = new Hono<AppEnv>()
     "/workload",
     requireRole("STAKEHOLDER"),
     zValidator("query", workloadSchema),
+    resolveProject({ from: "query", key: "projectId" }),
+    requirePermission("read", { skipIfNoContext: true }),
     async (c) => {
       const { projectId } = c.req.valid("query");
 
@@ -124,6 +129,8 @@ export const reportRoutes = new Hono<AppEnv>()
     "/time",
     requireRole("STAKEHOLDER"),
     zValidator("query", timeReportSchema),
+    resolveProject({ from: "query", key: "projectId" }),
+    requirePermission("read", { skipIfNoContext: true }),
     async (c) => {
       const query = c.req.valid("query");
 

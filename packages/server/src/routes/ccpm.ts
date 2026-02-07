@@ -3,6 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import type { AppEnv } from "../types.js";
 import { requireRole } from "../middleware/roleGuard.js";
+import { resolveProject, requirePermission } from "../middleware/accessControl.js";
 import { ccpmService } from "../services/ccpm.service.js";
 import { bufferService } from "../services/buffer.service.js";
 
@@ -29,6 +30,8 @@ export const ccpmRoutes = new Hono<AppEnv>()
   .get(
     "/projects/:projectId/critical-chain",
     requireRole("STAKEHOLDER"),
+    resolveProject({ from: "param", key: "projectId" }),
+    requirePermission("read"),
     async (c) => {
       const projectId = c.req.param("projectId");
       const result = await ccpmService.analyzeCriticalChain(projectId);
@@ -39,6 +42,8 @@ export const ccpmRoutes = new Hono<AppEnv>()
   .get(
     "/projects/:projectId/forecast",
     requireRole("STAKEHOLDER"),
+    resolveProject({ from: "param", key: "projectId" }),
+    requirePermission("read"),
     zValidator("query", forecastSchema),
     async (c) => {
       const projectId = c.req.param("projectId");
@@ -51,6 +56,8 @@ export const ccpmRoutes = new Hono<AppEnv>()
   .post(
     "/projects/:projectId/buffers/regenerate",
     requireRole("MEMBER"),
+    resolveProject({ from: "param", key: "projectId" }),
+    requirePermission("write"),
     async (c) => {
       const projectId = c.req.param("projectId");
       const user = c.get("user")!;
@@ -62,6 +69,8 @@ export const ccpmRoutes = new Hono<AppEnv>()
   .get(
     "/projects/:projectId/buffer-status",
     requireRole("STAKEHOLDER"),
+    resolveProject({ from: "param", key: "projectId" }),
+    requirePermission("read"),
     async (c) => {
       const projectId = c.req.param("projectId");
       const result = await bufferService.getProjectBufferStatus(projectId);
@@ -73,6 +82,8 @@ export const ccpmRoutes = new Hono<AppEnv>()
     "/buffers",
     requireRole("STAKEHOLDER"),
     zValidator("query", listBuffersSchema),
+    resolveProject({ from: "query", key: "projectId" }),
+    requirePermission("read"),
     async (c) => {
       const query = c.req.valid("query");
       const result = await bufferService.list(query);

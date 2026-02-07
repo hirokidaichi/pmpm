@@ -33,9 +33,9 @@ export interface CredentialsFile {
 
 // ── Paths ──
 
-const CONFIG_DIR = path.join(os.homedir(), ".pmpm");
-const CONFIG_FILE = path.join(CONFIG_DIR, "config.toml");
-const CREDENTIALS_FILE = path.join(CONFIG_DIR, "credentials.toml");
+export const CONFIG_DIR = path.join(os.homedir(), ".pmpm");
+export const CONFIG_FILE = path.join(CONFIG_DIR, "config.toml");
+export const CREDENTIALS_FILE = path.join(CONFIG_DIR, "credentials.toml");
 
 function ensureConfigDir(): void {
   if (!fs.existsSync(CONFIG_DIR)) {
@@ -45,7 +45,7 @@ function ensureConfigDir(): void {
 
 // ── Default Config ──
 
-const DEFAULT_CONFIG: PmpmConfig = {
+export const DEFAULT_CONFIG: PmpmConfig = {
   server: {
     url: "http://localhost:3000",
   },

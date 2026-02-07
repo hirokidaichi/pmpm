@@ -92,13 +92,22 @@ function testAuthMiddleware(client: ReturnType<typeof createClient>) {
           role: row.role as "ADMIN" | "MEMBER" | "STAKEHOLDER",
           status: row.status as string,
         });
+        c.set("workspaceRole", null);
+        c.set("projectRole", null);
+        c.set("effectivePermission", "none");
       } else {
         c.set("user", null);
         c.set("membership", null);
+        c.set("workspaceRole", null);
+        c.set("projectRole", null);
+        c.set("effectivePermission", "none");
       }
     } else {
       c.set("user", null);
       c.set("membership", null);
+      c.set("workspaceRole", null);
+      c.set("projectRole", null);
+      c.set("effectivePermission", "none");
     }
     await next();
   };

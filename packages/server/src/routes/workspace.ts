@@ -3,6 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import type { AppEnv } from "../types.js";
 import { requireRole } from "../middleware/roleGuard.js";
+import { resolveWorkspace, requirePermission } from "../middleware/accessControl.js";
 import { workspaceService } from "../services/workspace.service.js";
 
 const createWorkspaceSchema = z.object({
@@ -33,13 +34,22 @@ export const workspaceRoutes = new Hono<AppEnv>()
     zValidator("query", listWorkspacesSchema),
     async (c) => {
       const query = c.req.valid("query");
-      const result = await workspaceService.list(query);
+      const membership = c.get("membership");
+      const user = c.get("user")!;
+      // Server ADMIN sees all; others see only their workspaces
+      if (membership?.role === "ADMIN") {
+        const result = await workspaceService.list(query);
+        return c.json(result);
+      }
+      const result = await workspaceService.listForUser(query, user.id);
       return c.json(result);
     },
   )
   .get(
     "/:id",
     requireRole("STAKEHOLDER"),
+    resolveWorkspace({ from: "param", key: "id" }),
+    requirePermission("read"),
     async (c) => {
       const workspace = await workspaceService.getById(c.req.param("id"));
       return c.json(workspace);
@@ -59,6 +69,8 @@ export const workspaceRoutes = new Hono<AppEnv>()
   .put(
     "/:id",
     requireRole("MEMBER"),
+    resolveWorkspace({ from: "param", key: "id" }),
+    requirePermission("manage"),
     zValidator("json", updateWorkspaceSchema),
     async (c) => {
       const input = c.req.valid("json");
@@ -69,6 +81,8 @@ export const workspaceRoutes = new Hono<AppEnv>()
   .delete(
     "/:id",
     requireRole("MEMBER"),
+    resolveWorkspace({ from: "param", key: "id" }),
+    requirePermission("manage"),
     async (c) => {
       const workspace = await workspaceService.archive(c.req.param("id"));
       return c.json(workspace);

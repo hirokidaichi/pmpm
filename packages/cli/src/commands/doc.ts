@@ -2,7 +2,7 @@ import { Command } from "commander";
 import { get, post, put, del, extractClientOpts, type ClientOptions } from "../client/index.js";
 import { loadConfig } from "../config/index.js";
 import { resolveWorkspaceAndProject } from "../client/resolver.js";
-import { printOutput, printSuccess, printError } from "../output/formatter.js";
+import { printOutput, extractFormatOpts, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
 
 async function resolveProjectPath(
@@ -54,7 +54,7 @@ Examples:
           `/api/projects/${projectId}/documents`,
           clientOpts
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to list documents");
@@ -82,7 +82,7 @@ Examples:
       const { projectId } = await resolveProjectPath({ ...localOpts, ...opts }, clientOpts);
       try {
         const result = await get(`/api/projects/${projectId}/documents/${docId}`, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Document not found");
@@ -123,7 +123,7 @@ Examples:
           body,
           clientOpts
         );
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to create document");
@@ -176,7 +176,7 @@ Examples:
       if (localOpts.body) body.bodyMd = localOpts.body;
       try {
         const result = await put(`/api/projects/${projectId}/documents/${docId}`, body, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to edit document");

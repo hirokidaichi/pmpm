@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { get, post, extractClientOpts } from "../client/index.js";
-import { printOutput, printSuccess, printError } from "../output/formatter.js";
+import { printOutput, extractFormatOpts, printSuccess, printError } from "../output/formatter.js";
 import { EXIT_CODES } from "@pmpm/shared/constants";
 
 export function registerInboxCommand(program: Command): void {
@@ -42,7 +42,7 @@ Examples:
       query.limit = localOpts.limit;
       try {
         const result = await get(`/api/inbox`, { ...clientOpts, query });
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to list inbox");
@@ -135,7 +135,7 @@ Examples:
         };
         if (localOpts.ref) body.reference = localOpts.ref;
         const result = await post(`/api/inbox/send`, body, clientOpts);
-        printOutput(result, { format: opts.format, fields: opts.fields, quiet: opts.quiet });
+        printOutput(result, extractFormatOpts(opts));
       } catch (err: unknown) {
         const apiErr = err as { message?: string; exitCode?: number };
         printError(apiErr.message ?? "Failed to send message");

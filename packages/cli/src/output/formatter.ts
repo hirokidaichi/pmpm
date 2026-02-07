@@ -1,4 +1,5 @@
 import { stringify as yamlStringify } from "yaml";
+import pc from "picocolors";
 import type { OutputFormat } from "@pmpm/shared/constants";
 
 // ── Types ──
@@ -8,6 +9,39 @@ export interface FormatOptions {
   fields?: string;
   quiet?: boolean;
   noHeader?: boolean;
+}
+
+// ── Color State ──
+
+let _noColor = false;
+
+export function setNoColor(value: boolean): void {
+  _noColor = value;
+}
+
+function isColorEnabled(): boolean {
+  if (_noColor) return false;
+  if (process.env.NO_COLOR !== undefined) return false;
+  return true;
+}
+
+function c(fn: (s: string) => string, text: string): string {
+  return isColorEnabled() ? fn(text) : text;
+}
+
+// ── Importance Colorizer ──
+
+function colorizeImportance(value: string): string {
+  switch (value) {
+    case "CRITICAL":
+      return c(pc.red, value);
+    case "HIGH":
+      return c(pc.yellow, value);
+    case "LOW":
+      return c(pc.gray, value);
+    default:
+      return value;
+  }
 }
 
 // ── Field Selection ──
@@ -89,7 +123,7 @@ export function formatTable(
 
   // Header
   if (!opts.noHeader) {
-    const header = keys.map((k) => k.toUpperCase().padEnd(widths[k])).join("  ");
+    const header = keys.map((k) => c(pc.bold, k.toUpperCase().padEnd(widths[k]))).join("  ");
     lines.push(header);
   }
 
@@ -99,7 +133,14 @@ export function formatTable(
       .map((k) => {
         const cell = formatCellValue(row[k]);
         const displayValue = k === "id" ? truncateId(cell) : cell;
-        return displayValue.padEnd(widths[k]);
+        const padded = displayValue.padEnd(widths[k]);
+        if (k === "id") return c(pc.dim, padded);
+        if (k === "importance") {
+          // Pad first with plain text, then colorize
+          const padding = " ".repeat(Math.max(0, widths[k] - displayValue.length));
+          return colorizeImportance(displayValue) + padding;
+        }
+        return padded;
       })
       .join("  ");
     lines.push(line);
@@ -130,6 +171,51 @@ export function formatYaml(
     data = selectFields(data as Record<string, unknown>[], opts.fields);
   }
   return yamlStringify(data);
+}
+
+// ── CSV Formatter (RFC 4180) ──
+
+function escapeCsvField(value: string): string {
+  if (value.includes('"') || value.includes(",") || value.includes("\n") || value.includes("\r")) {
+    return '"' + value.replace(/"/g, '""') + '"';
+  }
+  return value;
+}
+
+export function formatCsv(
+  data: unknown,
+  opts: FormatOptions = {}
+): string {
+  if (!Array.isArray(data) || data.length === 0) {
+    if (!Array.isArray(data) && typeof data === "object" && data !== null) {
+      // Single object: wrap in array
+      data = [data];
+    } else {
+      return "";
+    }
+  }
+
+  const rows = opts.fields
+    ? selectFields(data as Record<string, unknown>[], opts.fields)
+    : (data as Record<string, unknown>[]);
+
+  if (rows.length === 0) return "";
+
+  const keys = Object.keys(rows[0]);
+  const lines: string[] = [];
+
+  if (!opts.noHeader) {
+    lines.push(keys.map((k) => escapeCsvField(k)).join(","));
+  }
+
+  for (const row of rows) {
+    const line = keys
+      .map((k) => escapeCsvField(formatCellValue(row[k])))
+      .join(",");
+    lines.push(line);
+  }
+
+  return lines.join("\n");
 }
 
 // ── Unified Output ──
@@ -163,6 +249,8 @@ export function formatOutput(
       return formatJson(data, opts);
     case "yaml":
       return formatYaml(data, opts);
+    case "csv":
+      return formatCsv(data, opts);
     case "table":
     default:
       if (Array.isArray(data)) {
@@ -200,6 +288,16 @@ function formatSingleObject(
 
 // ── Print Helper ──
 
+/** Extract FormatOptions from Commander's optsWithGlobals() result */
+export function extractFormatOpts(opts: Record<string, unknown>): FormatOptions {
+  return {
+    format: opts.format as OutputFormat | undefined,
+    fields: opts.fields as string | undefined,
+    quiet: opts.quiet as boolean | undefined,
+    noHeader: opts.headers === false,
+  };
+}
+
 export function printOutput(data: unknown, opts: FormatOptions = {}): void {
   const output = formatOutput(data, opts);
   if (output) {
@@ -210,13 +308,13 @@ export function printOutput(data: unknown, opts: FormatOptions = {}): void {
 // ── Success / Error Messages ──
 
 export function printSuccess(message: string): void {
-  console.log(message);
+  console.log(c(pc.green, message));
 }
 
 export function printError(message: string): void {
-  console.error(`Error: ${message}`);
+  console.error(c(pc.red, `Error: ${message}`));
 }
 
 export function printWarning(message: string): void {
-  console.error(`Warning: ${message}`);
+  console.error(c(pc.yellow, `Warning: ${message}`));
 }
